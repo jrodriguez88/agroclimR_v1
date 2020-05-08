@@ -12,7 +12,7 @@
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
 load_agroclim_requeriments()
 inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture"))
-crear_directorios_COF()
+crear_directorios_COF("/agroclimR_v1/")
 
 
 ### 2. Definir zona de estudio
@@ -81,7 +81,7 @@ to_aquacrop %>% pull(to_project) %>%
 
 
 ### 9. Ejecutar las simulaciones de AquaCrop
-system("agroclim_COF/plugin/ACsaV60.exe")
+system("agroclimR_v1/plugin/ACsaV60.exe")
 
 
 ### 10. Lectura de resultados
