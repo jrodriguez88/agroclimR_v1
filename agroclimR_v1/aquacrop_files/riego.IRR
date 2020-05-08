@@ -1,0 +1,6 @@
+Calculo de requerimientos hidricos 
+   6.1   : AquaCrop Version (May 2018)
+   1     : Sprinkler irrigation
+ 100     : Percentage of soil surface wetted by irrigation
+   3     : Determination of Net Irrigation requirement
+  50     : Allowable depletion of RAW (%)

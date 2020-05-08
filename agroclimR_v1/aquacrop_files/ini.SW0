@@ -1,0 +1,16 @@
+Cincidiones Iniciales AVT-ICDF
+    6.1   : AquaCrop Version (May 2018)
+   -9.00  : initial canopy cover that can be reached without water stress will be used as default
+    0.000 : biomass (ton/ha) produced before the start of the simulation period
+   -9.00  : initial effective rooting depth that can be reached without water stress will be used as default
+    0.0   : water layer (mm) stored between soil bunds (if present)
+    0.00  : electrical conductivity (dS/m) of water layer stored between soil bunds (if present)
+    0     : soil water content specified for specific layers
+    4     : number of layers considered
+
+Thickness layer (m)     Water content (vol%)     ECe(dS/m)
+==============================================================
+         0.05                33.80                  0.00
+         0.10                33.50                  0.00
+         0.15                32.80                  0.00
+         0.30                32.00                  0.00
