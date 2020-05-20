@@ -19,16 +19,16 @@ AgroclimR es un algoritmo-App que permite generar pronosticos agroclimaticos med
 
 ## Estructura de agroclimR
 
-![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/op_plot.png?raw=true)
+![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/img/agroclimR.jpg?raw=true)
 
 
 ## Instalacion o clonacion
 
 
-![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/op_plot.png?raw=true)
+![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/img/clone_acR.png?raw=true)
 
 
 ## Ejemplo de resultados
 
-![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/op_plot.png?raw=true)
+![Image name](https://github.com/jrodriguez88/agroclimR/blob/master/img/op_plot.png?raw=true)
 
