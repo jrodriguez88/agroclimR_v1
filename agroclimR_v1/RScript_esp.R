@@ -11,7 +11,7 @@
 
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
 load_agroclim_requeriments()
-inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture"))
+inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc"))
 crear_directorios_COF("/agroclimR_v1/")
 
 
@@ -52,9 +52,9 @@ start_sow <- min(data_resampling$data[[1]]$data[[1]]$month)   #c(month, day)
 
 
 to_aquacrop1 <- map(cultivar, 
-                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArcilloso", start_sow, get_sample = NA)) %>% bind_rows()
+                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArcilloso", start_sow, get_sample = 33)) %>% bind_rows()
 to_aquacrop2 <- map(cultivar, 
-                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArenoso", start_sow, get_sample = NA)) %>% bind_rows()
+                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArenoso", start_sow, get_sample = 33)) %>% bind_rows()
 to_aquacrop <- bind_rows(to_aquacrop1, to_aquacrop2)
 
 
