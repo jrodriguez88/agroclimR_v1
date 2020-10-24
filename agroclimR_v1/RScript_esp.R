@@ -16,12 +16,12 @@ crear_directorios_COF("/agroclimR_v1/")
 
 
 ### 2. Definir zona de estudio
-localidad <- "SitioA"
-latitud <- 13.9
-altitud <- 677
+localidad <- "Toca"
+latitud <- 5.58
+altitud <- 2700
 
 ### 3. Leer datos de entrada
-datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima.csv"))
+datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima_frio.csv"))
 
 pronostico <- read_csv(paste0(directorio_datos, "/pronostico_probabilistico.csv"))
 
@@ -47,17 +47,14 @@ plot_resampling(data_resampling, datos_historicos, localidad, stat = "median")
 ### 7. Configurar datos para formatos AquaCrop
 
 cultivar <- list.files(aquacrop_files, pattern = ".CRO") %>% str_remove(".CRO")
-suelos <- list.files(aquacrop_files, pattern = ".SOL")
-start_sow <- min(data_resampling$data[[1]]$data[[1]]$month)   #c(month, day)
+suelos <- list.files(aquacrop_files, pattern = ".SOL") %>% str_remove(".SOL")
+start_sow <- data_resampling$data[[1]]$data[[1]]$month[[1]]   #c(month, day)
 
 
-to_aquacrop1 <- map(cultivar, 
-                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArcilloso", start_sow, get_sample = 33)) %>% bind_rows()
-to_aquacrop2 <- map(cultivar, 
-                    ~from_resampling_to_aquacrop(data_resampling, localidad, .x, "FrancoArenoso", start_sow, get_sample = 33)) %>% bind_rows()
-to_aquacrop <- bind_rows(to_aquacrop1, to_aquacrop2)
-
-
+to_aquacrop <- map(cross2(cultivar, suelos),
+                    ~from_resampling_to_aquacrop(
+                      data_resampling, localidad, .x[[1]], .x[[2]], start_sow, get_sample = 50, date_breaks = 5)) %>% 
+              bind_rows()
 
 ### 8. Exportar datos a formato AquaCrop\
 
@@ -66,7 +63,7 @@ file.remove(list.files(aquacrop_files, full.names = T, pattern = ".PLU|.ETo|CLI|
 unlink(paste0(plugin_path, "/OUTP/*"))
 unlink(paste0(plugin_path, "/LIST/*"))
 
-#Exportar datos clmaticos
+  #Exportar datos clmaticos
 walk2(paste0(localidad, to_aquacrop$id), to_aquacrop$data,
       ~make_weather_aquacrop(aquacrop_files, .x, .y, latitud, altitud))
 
@@ -86,7 +83,7 @@ system("agroclimR_v1/plugin/ACsaV60.exe")
 
 ### 10. Lectura de resultados
 path_op <- paste0(plugin_path, "/OUTP/")
-season_files <- list.files(path_op, pattern = "season") 
+season_files <- list.files(path_op, pattern = "season") #%>% str_subset("Frijol")
 
 file_str <- c("clima", "cultivar", "soil", "crop_sys")
 season_data <- map(.x = season_files, ~read_aquacrop_season(.x, path_op)) %>%
@@ -94,7 +91,7 @@ season_data <- map(.x = season_files, ~read_aquacrop_season(.x, path_op)) %>%
 
 
 ### 11. Graficar resultados finales
-plot_agroclim_forecast(season_data, localidad, file_str = file_str, yield_units = "qq/mz")
+plot_agroclim_forecast(season_data, localidad, file_str = file_str, yield_units = "Tn/ha")
 plot_agroclim_hidric(season_data, localidad, file_str)
 
 
