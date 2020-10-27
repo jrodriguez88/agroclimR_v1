@@ -6,6 +6,6 @@ practices preventing runoff, presence of weeds
      0.20      : height (m) of soil bunds
      1         : surface runoff affected or completely prevented by field surface practices
      0         : N/A (surface runoff is not affected or completely prevented)
-     5         : relative cover of weeds at canopy closure (%)
+     0         : relative cover of weeds at canopy closure (%)
      0         : increase of relative cover of weeds in mid-season (+%)
    100.00      : shape factor of the CC expansion function in a weed infested field

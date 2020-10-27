@@ -11,12 +11,12 @@
 
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
 load_agroclim_requeriments()
-inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc"))
+inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc", "parallel"))
 crear_directorios_COF("/agroclimR_v1/")
 
 
 ### 2. Definir zona de estudio
-localidad <- "Toca"
+localidad <- "TestFrio"
 latitud <- 5.58
 altitud <- 2700
 
@@ -63,19 +63,31 @@ file.remove(list.files(aquacrop_files, full.names = T, pattern = ".PLU|.ETo|CLI|
 unlink(paste0(plugin_path, "/OUTP/*"))
 unlink(paste0(plugin_path, "/LIST/*"))
 
-  #Exportar datos clmaticos
-walk2(paste0(localidad, to_aquacrop$id), to_aquacrop$data,
-      ~make_weather_aquacrop(aquacrop_files, .x, .y, latitud, altitud))
+#Exportar datos clmaticos
+to_aquacrop %>% select(id_name, data) %>% distinct() %>% 
+  walk2(.x = .$id_name, .y = .$data, .f = ~make_weather_aquacrop(aquacrop_files, .x, .y, latitud, altitud))
 
 #Exportar proyectos
-to_aquacrop %>% pull(to_project) %>% 
-  walk(~make_project_by_date(id_name = .x$id_name, 
-                             sowing_dates = .x$sowing_dates, 
-                             cultivar = .x$cultivar, 
-                             soil = .x$soil, clim_data =  .x$clim_data, 
-                             max_crop_duration =  140,
-                             aquacrop_files = aquacrop_files, plugin_path = .x$plugin_path))
 
+####################################################### Setting parallel 
+ncores <- detectCores() - 2
+cl <- makeCluster(ncores)
+clusterExport(cl, c(as.vector(lsf.str()),
+                    "to_aquacrop",
+                    "aquacrop_files"))
+clusterEvalQ(cl, {library(tidyverse);library(lubridate); library(sirad); library(data.table)})
+
+#tictoc::tic()
+parLapply(cl, to_aquacrop %>% pull(to_project), function(x){ 
+  make_project_by_date(id_name = x$id_name,
+                       sowing_dates = x$sowing_dates, 
+                       cultivar = x$cultivar,
+                       soil = x$soil, clim_data = x$clim_data, 
+                       max_crop_duration = 140, 
+                       aquacrop_files = aquacrop_files, plugin_path = x$plugin_path)})
+#tictoc::toc()
+stopCluster(cl)
+#########################################################################
 
 ### 9. Ejecutar las simulaciones de AquaCrop
 system("agroclimR_v1/plugin/ACsaV60.exe")
