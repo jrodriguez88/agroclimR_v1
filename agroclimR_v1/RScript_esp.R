@@ -10,15 +10,16 @@
 ### 1. Cargar requerimientos
 
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
-load_agroclim_requeriments()
+load_agroclimr_requeriments()
 inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc", "parallel"))
-crear_directorios_COF("/agroclimR_v1/")
+ubicar_directorios("/agroclimR_v1/")
 
 
 ### 2. Definir zona de estudio
 localidad <- "TestFrio"
 latitud <- 5.58
 altitud <- 2700
+#longitud <- -72.5
 
 ### 3. Leer datos de entrada
 datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima_frio.csv"))
@@ -32,7 +33,7 @@ plot_prob_forecast(pronostico)
 plot_weather_series(datos_historicos, localidad)
 
 ### 5. Realice el remuestreo estadistico sobre la serie historica
-data_resampling <- resampling(datos_historicos, pronostico, 2020)
+data_resampling <- resampling(datos_historicos, pronostico, 2021)
 
 
 ### Opcional : Guarde los escenarios
@@ -52,9 +53,9 @@ start_sow <- data_resampling$data[[1]]$data[[1]]$month[[1]]   #c(month, day)
 
 
 to_aquacrop <- map(cross2(cultivar, suelos),
-                    ~from_resampling_to_aquacrop(
-                      data_resampling, localidad, .x[[1]], .x[[2]], start_sow, get_sample = 50, date_breaks = 5)) %>% 
-              bind_rows()
+                   ~from_resampling_to_aquacrop(
+                     data_resampling, localidad, .x[[1]], .x[[2]], start_sow, get_sample = 50, date_breaks = 5)) %>% 
+  bind_rows()
 
 ### 8. Exportar datos a formato AquaCrop\
 
@@ -65,12 +66,13 @@ unlink(paste0(plugin_path, "/LIST/*"))
 
 #Exportar datos clmaticos
 to_aquacrop %>% select(id_name, data) %>% distinct() %>% 
-  walk2(.x = .$id_name, .y = .$data, .f = ~make_weather_aquacrop(aquacrop_files, .x, .y, latitud, altitud))
+  walk2(.x = .$id_name, .y = .$data,
+        .f = ~make_weather_aquacrop(aquacrop_files, .x, .y, latitud, altitud))
 
 #Exportar proyectos
 
 ####################################################### Setting parallel 
-ncores <- detectCores() - 2
+ncores <- detectCores() - 1
 cl <- makeCluster(ncores)
 clusterExport(cl, c(as.vector(lsf.str()),
                     "to_aquacrop",
@@ -83,7 +85,7 @@ parLapply(cl, to_aquacrop %>% pull(to_project), function(x){
                        sowing_dates = x$sowing_dates, 
                        cultivar = x$cultivar,
                        soil = x$soil, clim_data = x$clim_data, 
-                       max_crop_duration = 140, 
+                       max_crop_duration = 150, 
                        aquacrop_files = aquacrop_files, plugin_path = x$plugin_path)})
 #tictoc::toc()
 stopCluster(cl)
