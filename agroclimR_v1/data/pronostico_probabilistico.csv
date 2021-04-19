@@ -1,7 +1,7 @@
 Season,Type,Prob
-SON,below,20
-SON,normal,25
-SON,above,55
-DJF,below,20
-DJF,normal,25
-DJF,above,55
+MJJ,below,20
+MJJ,normal,25
+MJJ,above,55
+ASO,below,20
+ASO,normal,25
+ASO,above,55
