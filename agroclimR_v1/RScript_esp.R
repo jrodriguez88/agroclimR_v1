@@ -1,4 +1,4 @@
-# Script app - Pronosticos agro-climáticos estacionales.
+# Script app - Pronosticos agro-climaticos estacionales.
 # Author: Rodriguez-Espinoza J. / Esquivel A.
 # Repository: https://github.com/jrodriguez88/
 # 2020
@@ -18,8 +18,8 @@ ubicar_directorios("")
 ### 2. Definir zona de estudio
 localidad <- "Centroamerica"
 latitud <- 13.9
+longitud <- -86.0
 altitud <- 677
-#longitud <- -86.0
 
 ### 3. Leer datos de entrada
 datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima_test.csv"))
