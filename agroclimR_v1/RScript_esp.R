@@ -1,4 +1,4 @@
-# Script app - Pronósticos agro-climáticos estacionales.
+# Script app - Pronosticos agro-climáticos estacionales.
 # Author: Rodriguez-Espinoza J. / Esquivel A.
 # Repository: https://github.com/jrodriguez88/
 # 2020
@@ -12,17 +12,17 @@
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
 load_agroclimr_requeriments()
 inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc", "parallel"))
-ubicar_directorios("/agroclimR_v1/")
+ubicar_directorios("")
 
 
 ### 2. Definir zona de estudio
-localidad <- "TestFrio"
-latitud <- 5.58
-altitud <- 2700
-#longitud <- -72.5
+localidad <- "Centroamerica"
+latitud <- 13.9
+altitud <- 677
+#longitud <- -86.0
 
 ### 3. Leer datos de entrada
-datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima_frio.csv"))
+datos_historicos <- read_csv(paste0(directorio_datos, "/datos_clima_test.csv"))
 
 pronostico <- read_csv(paste0(directorio_datos, "/pronostico_probabilistico.csv"))
 
@@ -54,8 +54,8 @@ start_sow <- data_resampling$data[[1]]$data[[1]]$month[[1]]   #c(month, day)
 
 to_aquacrop <- map(cross2(cultivar, suelos),
                    ~from_resampling_to_aquacrop(
-                     data_resampling, localidad, .x[[1]], .x[[2]], start_sow, get_sample = 50, date_breaks = 5)) %>% 
-  bind_rows()
+                     data_resampling, localidad, .x[[1]], .x[[2]], 
+                     start_sow, get_sample = 10, date_breaks = 5)) %>% bind_rows()
 
 ### 8. Exportar datos a formato AquaCrop\
 
@@ -92,7 +92,7 @@ stopCluster(cl)
 #########################################################################
 
 ### 9. Ejecutar las simulaciones de AquaCrop
-system("agroclimR_v1/plugin/ACsaV60.exe")
+system("plugin/ACsaV60.exe")
 
 
 ### 10. Lectura de resultados
@@ -105,8 +105,13 @@ season_data <- map(.x = season_files, ~read_aquacrop_season(.x, path_op)) %>%
 
 
 ### 11. Graficar resultados finales
-plot_agroclim_forecast(season_data, localidad, file_str = file_str, yield_units = "Tn/ha")
+plot_agroclim_forecast(season_data, localidad, file_str = file_str, yield_units = "kg/ha")
 plot_agroclim_hidric(season_data, localidad, file_str)
 
 
-## Felicitaciones, ha terminado su primer pronostico agroclimatico.
+ if(exists("season_data")==T){
+   message(paste0("Proceso Exitoso, ha generado la simulacion agroclimatica para ",
+                 localidad, "\n", "Se evaluaron los cultivos de ", paste(cultivar, collapse = ", "),
+                 "\nEn suelos ", paste(suelos, collapse = ", ")))}
+
+
