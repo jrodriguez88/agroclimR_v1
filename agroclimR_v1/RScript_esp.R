@@ -109,7 +109,11 @@ plot_agroclim_forecast(season_data, localidad, file_str = file_str, yield_units 
 plot_agroclim_hidric(season_data, localidad, file_str)
 
 
- if(exists("season_data")==T){
+### 12. Guardar datos de simulacion (Opcional)
+#write_csv(season_data, "Resultados_de_simulacion.csv")
+
+
+if(exists("season_data")==T){
    message(paste0("Proceso Exitoso, ha generado la simulacion agroclimatica para ",
                  localidad, "\n", "Se evaluaron los cultivos de ", paste(cultivar, collapse = ", "),
                  "\nEn suelos ", paste(suelos, collapse = ", ")))}
