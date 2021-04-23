@@ -12,16 +12,16 @@
 #latitud <- 13.9
 #longitud <- -86.0
 #altitud <- 677
-ini_date <- make_date(1990, 1, 1)
-end_date <- make_date(2020, 12, 31)
+#ini_date <- make_date(1990, 1, 1)
+#end_date <- make_date(2020, 12, 31)
 
 
 
 ## Descarga de NASAPOWER
-datos_clima_nasa <- get_data_nasapower(latitud, longitud, ini_date, end_date) %>% 
+datos_clima_nasa <- get_data_nasapower(latitud, longitud, make_date(1990, 1, 1), make_date(2020, 12, 31)) %>% 
   from_nasa_to_model() 
-#%>% rename(prec = rain) %>% select(day, month, year, prec, tmax, tmin) %>% write_csv("datos_nasa.csv")
-
+#datos_clima_nasa %>% rename(prec = rain) %>% select(day, month, year, prec, tmax, tmin) %>% 
+#                plot_weather_series(id_label = "Jalapa_Nicaragua")  #%>%write_csv("datos_nasa.csv")
 
 
 ## Descarga de SOILGRIDS
