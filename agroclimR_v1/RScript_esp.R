@@ -12,7 +12,7 @@
 source("https://raw.githubusercontent.com/jrodriguez88/aquacrop-R/master/agroclim_forecaster.R", encoding = "UTF-8")
 load_agroclimr_requeriments()
 inpack(c("tidyverse", "data.table", "lubridate", "sirad", "naniar", "jsonlite" ,"soiltexture", "Hmisc", "parallel"))
-ubicar_directorios("")
+ubicar_directorios("/agroclimR_v1")
 
 
 ### 2. Definir zona de estudio
@@ -33,7 +33,8 @@ plot_prob_forecast(pronostico)
 plot_weather_series(datos_historicos, localidad)
 
 ### 5. Realice el remuestreo estadistico sobre la serie historica
-data_resampling <- resampling(datos_historicos, pronostico, 2021)
+st_y <- lubridate::year(Sys.Date())
+data_resampling <- resampling(datos_historicos, pronostico, st_y)
 
 
 ### Opcional : Guarde los escenarios
@@ -55,7 +56,7 @@ start_sow <- data_resampling$data[[1]]$data[[1]]$month[[1]]   #c(month, day)
 to_aquacrop <- map(cross2(cultivar, suelos),
                    ~from_resampling_to_aquacrop(
                      data_resampling, localidad, .x[[1]], .x[[2]], 
-                     start_sow, get_sample = 10, date_breaks = 5)) %>% bind_rows()
+                     start_sow, get_sample = 100, date_breaks = 5)) %>% bind_rows()
 
 ### 8. Exportar datos a formato AquaCrop\
 
