@@ -9,34 +9,42 @@
 #library(sirad)
 #library(lubridate)
 
-### read_data from csv. format (oryza)
-#dir.create(paste0(getwd(), "/outputs/weather"))
+
 #path <- paste0(getwd(), "/outputs/weather/")
 #id_name <- "test_name"
 #lat <- 13.9
-#alt <- 657
-#co2_file <- "MaunaLoa.CO2"
+#elev <- 657
+#co2_file <- "MaunaLoa.CO2" # *.CO2 files are available in Aquacrop default DB
 #wth_data <- read.csv("data/weather_to_aquacrop.csv") %>% 
 #    mutate(date = ymd(date))
 
+## write_wth_aquacrop function compute weather information to ORYZA weather file.
+## 'wth_data':  csv file name or data.frame. 
+#           str-> 
+#                ..$ date: Date ->(mdy)
+#                ..$ tmax: num  ->(oC)
+#                ..$ tmin: num  ->(oC) 
+#                ..$ rain: num  ->(mm) 
+#                ..$ srad: num  ->(MJ) 
+#                ..$ rhum: num  ->(%)
+#                ..$ wspd: num  ->(m/s)
+## 'path':  path folder or working directory
+## 'id_name'  :  4 letters string of locality name. "AIHU"--> Aipe, Huila 
+## 'lat':   latitud (decimal degrees)
+## 'lon':   longitud (decimal degrees)
+## 'elev':  elevation (meters above sea level)
 
-
-
-make_weather_aquacrop <-function(path, id_name, wth_data, lat, alt, co2_file = "MaunaLoa.CO2") {
+ETo_cal <- function(wth_data, lat, elev, ref_ht = 2, kRs = 0.175, ws_mean = 2){
     
     stopifnot(require(sirad))
     
-    if("ETo" %in% colnames(wth_data)){
-        ETo = wth_data$ETo
-    } else if (all(c("rhum", "tmax", "tmin", "srad", "rain") %in% colnames(wth_data) == T)) {
+    varnames <- colnames(wth_data)
+    
+    if (all(c("rhum", "tmax", "tmin", "srad", "wspd") %in% varnames)) {
         ### Cal ETo
-        ETo_cal <- function(wth_data, lat, alt, alt_ws = 2){
-            
-            if (!"wvel" %in% colnames(wth_data)) {
-                wth_data <- mutate(wth_data, wvel = 2)
-#                message("Wind Speed = 2 m/s was used")
-            } 
-            
+        
+        message("Reference evapotranspiration (ETo) Method: FAO Penman-Monteith equation")
+
             ## Estimate clear sky transmissivity
             extraT <- extrat(lubridate::yday(wth_data$date), radians(lat))$ExtraTerrestrialSolarRadiationDaily
             
@@ -51,23 +59,49 @@ make_weather_aquacrop <-function(path, id_name, wth_data, lat, alt, co2_file = "
                     #            vp = es-ea,
                     extraT = extraT,
                     tmean = (tmax+tmin)/2, 
-                    ETo = sirad::et0(tmax, tmin, ea, srad, 0.85, alt, wvel, alt_ws, extraT),
+                    ETo = sirad::et0(tmax, tmin, ea, srad, 0.85, elev, wspd, ref_ht, extraT),
                     ETo = case_when(is.na(ETo) ~ 0.0023*(tmean + 17.8)*((tmax - tmin)^0.5)*extraT/3,
                                     TRUE ~ ETo)
                 ) %>%
                 pull(ETo)
             
+        } else if (all(c("rhum", "tmax", "tmin", "srad") %in% varnames)) {
+        ### Cal ETo
+        
+        if (!"wspd" %in% varnames) {
+            wth_data <- mutate(wth_data, wspd = ws_mean)
+            message(paste0("Wind Speed = ", ws_mean, "m/s was used"))
         }
         
-        ETo <- ETo_cal(wth_data, lat, alt)
-        
-    } else if (all(c("tmax", "tmin") %in% colnames(wth_data) == T)) {
-        
-        ETo_cal2 <- function(wth_data, lat, alt, alt_ws = 2){
+        message(paste0("Reference evapotranspiration (ETo) Method: FAO Penman-Monteith equation  +  Assumption: Wind Speed mean = ", ws_mean, "m/s"))
+
+            ## Estimate clear sky transmissivity
+            extraT <- extrat(lubridate::yday(wth_data$date), radians(lat))$ExtraTerrestrialSolarRadiationDaily
             
-            if (!"wvel" %in% colnames(wth_data)) {
-                wth_data <- mutate(wth_data, wvel = 2)
-#                message("Wind Speed = 2 m/s was used")
+            ## cal trasmisivity 3% days
+            #    tal <- cst(RefRad = wth_data$srad, days = wth_data$date, extraT = extraT, lat = radians(lat), perce = 5)
+            
+            ETo <- wth_data %>%
+                mutate(
+                    es = sirad::es(tmax, tmin), 
+                    ea = es*rhum/100,
+                    #          ea = if_else(is.na(ea), 0.611*exp(17.27*tmin/(tmin+237.3)), ea),
+                    #            vp = es-ea,
+                    extraT = extraT,
+                    tmean = (tmax+tmin)/2, 
+                    ETo = sirad::et0(tmax, tmin, ea, srad, 0.85, elev, wspd, ref_ht, extraT),
+                    ETo = case_when(is.na(ETo) ~ 0.0023*(tmean + 17.8)*((tmax - tmin)^0.5)*extraT/3,
+                                    TRUE ~ ETo)
+                ) %>%
+                pull(ETo)
+            
+        } else if (all(c("tmax", "tmin") %in% varnames)) {
+        
+        message("Reference evapotranspiration (ETo) Method: Hargreaves equation")
+            
+            if (!"wspd" %in% varnames) {
+                wth_data <- mutate(wth_data, wspd = ws_mean)
+                #                message("Wind Speed = 2 m/s was used")
             } 
             
             ## Estimate clear sky transmissivity
@@ -77,42 +111,48 @@ make_weather_aquacrop <-function(path, id_name, wth_data, lat, alt, co2_file = "
                 mutate(extraT = extraT,
                        ea = 0.611*exp(17.27*tmin/(tmin+237.3)),
                        tmean = (tmax+tmin)/2, 
-                       srad = 0.16*sqrt(tmax - tmin)*extraT, # Coeficient, coastal
-                       ETo = sirad::et0(tmax, tmin, ea, srad, 0.85, alt, 2, alt_ws, extraT),
+                       srad = kRs*sqrt(tmax - tmin)*extraT, # Coeficient, coastal
+                       ETo = sirad::et0(tmax, tmin, ea, srad, 0.85, elev, wspd, ref_ht, extraT),
                        ETo = case_when(is.na(ETo) ~ 0.0023*(tmean + 17.8)*((tmax - tmin)^0.5)*extraT/2.5,
                                        TRUE ~ ETo)) %>% 
                 pull(ETo)
             
-        }
-        
-        ETo <- ETo_cal2(wth_data, lat, alt)
-        
-        
-    } else {
+        } else {
         
         message("No data to calculate ETo!.")
         
     }
     
     
+return(ETo)
     
-    data <- wth_data %>%
-        mutate(
-            tmin  = case_when(is.na(tmin) ~ median(wth_data$tmin, na.rm = T),
-                              TRUE ~ tmin),
-            tmax = case_when(is.na(tmax) ~ median(wth_data$tmax, na.rm = T),
-                             TRUE ~ tmax),
-            rain = case_when(is.na(rain) ~ median(wth_data$rain, na.rm = T),
-                             TRUE ~ rain)
-        ) 
+    
+    
+}
+    
+    
+tidy_wth_aquacrop <- function(wth_data){
+    
+    var_names <- colnames(wth_data)
+    stopifnot(class(wth_data$date)=="Date" & all(c("tmax", "tmin", "rain") %in%  var_names))
+    
+    impute_mean_wth(wth_data)
+
+}
+
+
+write_wth_aquacrop <-function(path, id_name, wth_data, lat, lon, elev, co2_file = "MaunaLoa.CO2") {
+    
+
+    data <- tidy_wth_aquacrop(wth_data) 
     
     ## Split data and write .ETo / .PLU / Tnx / .CLI files.
     
     # Climate file .CLI
     write_CLI <- function(id_name){
         sink(file = paste0(path, id_name, ".CLI"), append = F)   
-        cat(paste(id_name, "- by https://github.com/jrodriguez88"), sep = "\n")
-        cat(" 6.0   : AquaCrop Version (March 2017)", sep = "\n")
+        cat(paste(id_name, "Station, lat:", lat, "long:", lon, "- by https://github.com/jrodriguez88"), sep = "\n")
+        cat("6.0   : AquaCrop Version (March 2017)", sep = "\n")
         cat(paste0(id_name, ".Tnx"), sep = "\n")
         cat(paste0(id_name, ".ETo"), sep = "\n")
         cat(paste0(id_name, ".PLU"), sep = "\n")
@@ -172,7 +212,7 @@ make_weather_aquacrop <-function(path, id_name, wth_data, lat, alt, co2_file = "
         cat("\n")
         cat(paste0("  Average ETo (mm/day)", sep = "\n"))
         cat("=======================", sep = "\n")
-        writeLines(sprintf("%10.1f", ETo))
+        writeLines(sprintf("%10.1f", data$ETo))
         sink()
         
     }
@@ -182,7 +222,19 @@ make_weather_aquacrop <-function(path, id_name, wth_data, lat, alt, co2_file = "
 }
 
 
-#make_weather_aquacrop(path, id_name, wth_data, lat, alt, co2_file = "MaunaLoa.CO2")
+
+#ideal data
+#data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
+
+#data %>% mutate(ETo = ETo_cal(., 3.5, 250)) %>%
+#    write_wth_aquacrop("R_package/write_files/", "TEST", ., 3.5, -75, 250)
+    
+
+
+# minimum data
+#data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
+#data %>% mutate(ETo = ETo_cal(., 3.5, 250)) %>%
+#    write_wth_aquacrop("R_package/write_files/", "TEST", ., 3.5, -75, 250)
 
  
 

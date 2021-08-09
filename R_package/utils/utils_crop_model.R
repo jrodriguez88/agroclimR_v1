@@ -118,31 +118,57 @@ HUH_cal <- function(tmax, tmin, tbase = 8, topt = 30, thigh = 42.5) {
 #Production Protection Paper 17. Rome: Food and Agricultural Organization.
 #64 p.
 # kRs adjustment coefficient (0.16.. 0.19) -- for interior (kRs = 0.16) and coastal (kRs = 0.19) regions
-srad_cal <- function(data, lat, lon, alt, A = 0.29, B = 0.45, kRs = 0.175){
+srad_cal <- function(data, lat, sh_name =  "sbri", A = 0.29, B = 0.45, kRs = 0.175, fill = F){
     
     stopifnot(require(sirad))
+  
+
+  if (sh_name %in% colnames(data)){
     
-    if(!"sbri" %in% colnames(data))
-    {
-        data <- mutate(data, sbri = NA_real_)   #Aqui crea la variable brillo por si no existe
-    }
-    
-    step1 <- data %>% 
-        mutate(
-            extraT = extrat(lubridate::yday(date), radians(lat))$ExtraTerrestrialSolarRadiationDaily, # Calcula la radiacion extraterrestre
-            srad = ap(date, lat = lat, lon = lon,    # aqui aplica Angstrom-Prescott
-                      extraT, A, B, sbri),
-            srad = if_else(is.na(srad), kRs*sqrt(tmax - tmin)*extraT, srad))  # Aqui aplica Hargreaves
-    
-    max_srad <- mean(step1$extraT)*0.80     # calcula el maximo teorico de radiacion
-    
-    step2 <- step1 %>%  
-        mutate(
-            srad = if_else(srad>max_srad|srad<0|is.na(srad),  median(step1$srad, na.rm = T), srad)) %>%
-        dplyr::pull(srad)
+    data <- data %>% 
+      mutate(
+        extraT = extrat(lubridate::yday(date), radians(lat))$ExtraTerrestrialSolarRadiationDaily, # Calcula la radiacion extraterrestre
+        srad = ap(date, lat = lat, lon = lon,    # aqui aplica Angstrom-Prescott
+                  extraT, A, B, sbri))
     
     
-    return(step2)   # retorna la radiacion en MJ/m2*dia
+    
+    message("Method for estimate Solar Radiation: Angstrom-Prescott (A-P) Model")
+    
+  } else if (all(c("tmax", "tmin") %in%  colnames(data))){
+    
+    data <- mutate(data, sbri = NA_real_)   #Aqui crea la variable brillo por si no existe
+    message("Method for estimate Solar Radiation: Hargreaves Model")
+    
+    data <- data %>% 
+      mutate(
+        extraT = extrat(lubridate::yday(date), radians(lat))$ExtraTerrestrialSolarRadiationDaily, # Calcula la radiacion extraterrestre
+        srad = kRs*sqrt(tmax - tmin)*extraT) ## kRs adjustment coefficient (0.16.. 0.19) -- for interior (kRs = 0.16) and coastal (kRs = 0.19) regions
+    
+  } else {
+      
+      message("No data to calculate Solar Radiation!.")
+      
+  }
+  
+  
+  
+  
+  
+  if (isTRUE(fill)) {
+    
+    max_srad <- mean(data$extraT)*0.80     # calcula el maximo teorico de radiacion
+    
+    data <- data %>% 
+      mutate(
+        srad = if_else(is.na(srad), kRs*sqrt(tmax - tmin)*extraT, srad),
+        srad = if_else(srad>max_srad|srad<0|is.na(srad),  median(step1$srad, na.rm = T), srad))
+        
+    
+  }
+  
+
+    return(pull(data, srad))   # retorna la radiacion en MJ/m2*dia
     
     
 }
@@ -212,6 +238,20 @@ get_elevation <- function(lat, lon, dataset = "aster30m"){
 }
 #get_elevation(3.82, -76.5)
 
+
+
+#Function to impute missing values by monthly mean
+impute_mean_wth <- function(wth_data){
+  
+  stopifnot(require(naniar))
+  
+  data %>% mutate(year = year(date), month = month(date)) %>% 
+    nest(data = -c(year, month)) %>%
+    mutate(data = map(data, ~.x %>% impute_mean_at(.vars = vars(-date)))) %>% 
+    unnest(data) %>% select(-c(year, month))
+  
+  
+}
 
 
 

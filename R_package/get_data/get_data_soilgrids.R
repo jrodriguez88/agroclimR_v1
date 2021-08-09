@@ -55,7 +55,7 @@ get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "
     values_to_ext <- paste0("&value=", value, collapse = "")
     
     
-    link <- paste0("https://rest.soilgrids.org/soilgrids/v2.0/properties/query?lon=", 
+    link <- paste0("https://rest.isric.org/soilgrids/v2.0/properties/query?lon=", 
                    lon, "&lat=", lat, 
                    var_to_dl, 
                    depts_to_dl, 

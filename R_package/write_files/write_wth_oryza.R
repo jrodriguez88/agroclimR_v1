@@ -12,85 +12,142 @@
 #     4      irradiance         KJ m-2 d-1                                            
 #     5      min temperature            oC                                                        
 #     6      max temperature            oC                                                        
-#     7      vapor pressure            kPa                                                        
+#     7      vapor pressure            kPa   early morning vapor pressure (VP; kPa)                                                     
 #     8      mean wind speed         m s-1                                                        
 #     9      precipitation          mm d-1
 
 
-## Make_WTH_ORYZA function compute weather information to ORYZA weather file.
-## 'data':  csv file name or data.frame. 
+## write_wth_oryza function compute weather information to ORYZA weather file.
+## 'wth_data':  csv file name or data.frame. 
 #           str-> 
-#                ..$ DATE: Date ->(mdy)
-#                ..$ TMAX: num  ->(oC)
-#                ..$ TMIN: num  ->(oC) 
-#                ..$ RAIN: num  ->(mm) 
-#                ..$ SRAD: num  ->(MJ) 
-#                ..$ RHUM: num  ->(%) 
+#                ..$ date: Date ->(mdy)
+#                ..$ tmax: num  ->(oC)
+#                ..$ tmin: num  ->(oC) 
+#                ..$ rain: num  ->(mm) 
+#                ..$ srad: num  ->(MJ) 
+#                ..$ rhum: num  ->(%)
+#                ..$ wspd: num  ->(m/s)
 ## 'path':  path folder or working directory
-## 'local': 4 letters string of locality name. "AIHU"--> Aipe, Huila 
+## 'id_name'  :  4 letters string of locality name. "AIHU"--> Aipe, Huila 
 ## 'lat':   latitud (decimal degrees)
 ## 'lon':   longitud (decimal degrees)
-## 'alt':   altitude (meters above sea level)
+## 'elev':  elevation (meters above sea level)
+## 'stn:    station number (numeric)
+## 'multiyear' : logical, TRUE = "*.cli" multiyear format or FALSE = yearly format (ie. 1998 = *. 998)
 
-
-#map(data_list, copy_wth)
-#data <- "weather_input.csv"
-#path <- getwd() 
-#local<- "AIHU"
-#lat <- 3.5
-#lon <- -75.5
-#alt <- 250
-
-#library(tidyverse)
-#list.files(pattern=".RData") %>% lapply(load, .GlobalEnv)
-#locs_id <- ls()
-
-write_wth_oryza <- function(data, path, id, lat, lon, alt, stn=1) {
+tidy_wth_oryza <- function(wth_data, cal_VP = T){
+    
+    var_names <- colnames(wth_data)
     
     stopifnot(require(sirad))
+    stopifnot(class(wth_data$date)=="Date" & all(c("tmax", "tmin", "rain", "srad") %in%  var_names))
     
-    if("rhum" %in% colnames(data))
+    if("VP" %in% var_names){
+        message("Early morning vapor pressure (VP; kPa) in data")
+    } else if(isTRUE(cal_VP) & "rhum" %in% var_names)
     {
-        data <- mutate(data, 
-                       es = sirad::es(tmax, tmin), 
-                       vpd = es*rhum/100) %>% select(-es)  #cal vpd
-    } else {data <- mutate(data, vpd = NA_real_)}
-    
-    if (!"wspd" %in% colnames(data)) {
-        data <- mutate(data, wspd = NA_real_)
-        message("Wind Speed is not Available - Set as -99")
+        wth_data <- mutate(wth_data, 
+                           es = sirad::es(tmax, tmin),         #Determination of mean saturation vapour pressure http://www.fao.org/3/x0490e/x0490e07.htm  - eq.12
+                           VP = es*rhum/100) %>% select(-es)   #Determination of actual vapour pressure vpd http://www.fao.org/3/x0490e/x0490e07.htm  - eq.19
+        message("Early morning vapor pressure (VP; kPa) derived from relative humidity data")
+        
+    } else {
+        wth_data <- mutate(wth_data, VP = NA_real_)
+        message("Vapor Pressure is not Available - VP Set as NA: -99")
+        
     }
     
     
+    if (!"wspd" %in% var_names) {
+        wth_data <- mutate(wth_data, wspd = NA_real_)
+        message("Wind Speed is not Available - Set as NA: -99")
+    }
     
-        data_to <- data %>%
-            mutate(stn = stn,
-                   year = year(date),
-                   day = yday(date),
-                   srad = if_else(is.na(srad), median(data$srad, na.rm = T), round(srad*1000, 2)),
-                   tmax = if_else(is.na(tmax), -99, round(tmax, 2)),
-                   tmin = if_else(is.na(tmin), -99, round(tmin, 2)),
-                   rain = if_else(is.na(rain), -99, round(rain, 2)),
-                   vpd  = if_else(is.na(vpd), -99, round(vpd, 2)), 
-                   wspd = if_else(is.na(wspd), -99, round(wspd, 2))) %>%
-            select(stn, year, day, srad, tmin, tmax, vpd, wspd, rain)
-        
-
-    
-    dir.create(paste0(path,"/WTH"), showWarnings = FALSE)
-    set_head <- paste(lon, lat, alt, 0, 0, sep = ",")    
-    #DATA=read.table(file, head=T)  
-    data_list <- split(data_to, data_to$year)
-    lapply(data_list, function(x){
-        fname <- paste(path,"/WTH/" , id, stn,".", str_sub(unique(x$year), 2), sep = "")
-        sink(file=fname)
-        cat(set_head)
-        cat("\n")
-        write.table(x ,sep=",",row.names=F,col.names=F)
-        sink()})
+    return(wth_data)
     
 }
 
-#write_wth_oryza(data, "write_files/", "TEST", 3.5, -75, 250)
+write_wth_oryza <- function(path, id_name, wth_data, lat, lon, elev, stn=1, multiyear = T, tag = F) {
+    
 
+# Evalua colnames
+stopifnot(require(tidyverse))
+    
+print_tag <- function(){
+      
+cat("*-----------------------------------------------------------", sep = '\n')        
+cat(paste0("*  Station Name: ", id_name), sep = '\n')
+cat(paste0("*  DSSAT Weather file - by https://github.com/jrodriguez88"), sep = '\n') 
+cat(paste0("*  Longitude: ", lon, " -- Latitude: ", lat, " -- Elevation: ", elev, "m"), sep = '\n')
+cat("*-----------------------------------------------------------", sep = '\n') 
+cat(paste0("*  Date: ", min(wth_data$date), " : ", max(wth_data$date)), sep = '\n')
+cat("*", sep = '\n') 
+cat("*  Column    Daily Value
+*     1      Station number
+*     2      Year
+*     3      Day
+*     4      irradiance         KJ m-2 d-1
+*     5      min temperature            oC
+*     6      max temperature            oC
+*     7      vapor pressure            kPa
+*     8      mean wind speed         m s-1
+*     9      precipitation          mm d-1
+*-----------------------------------------------------------", sep = '\n')
+        
+}
+
+
+# Data base
+    data_to <- tidy_wth_oryza(wth_data) %>%
+            mutate(stn = stn,
+                   year = year(date),
+                   day = yday(date),
+                   srad = if_else(is.na(srad), median(wth_data$srad, na.rm = T), round(srad*1000, 2)),
+                   tmax = if_else(is.na(tmax), -99, round(tmax, 2)),
+                   tmin = if_else(is.na(tmin), -99, round(tmin, 2)),
+                   rain = if_else(is.na(rain), -99, round(rain, 2)),
+                   VP  = if_else(is.na(VP), -99, round(VP, 2)), 
+                   wspd = if_else(is.na(wspd), -99, round(wspd, 2))) %>%
+            select(stn, year, day, srad, tmin, tmax, VP, wspd, rain)
+    
+    
+    #    dir.create(paste0(path,"/WTH"), showWarnings = FALSE)
+    set_head <- paste(lon, lat, elev, 0, 0, sep = ",")
+    
+    if(isTRUE(multiyear)){
+    #DATA=read.table(file, head=T)
+        fname <- paste0(path, "/" , id, stn, ".cli")
+        sink(file = fname, append = F)
+        if(isTRUE(tag)) print_tag()
+        cat(set_head)
+        cat("\n")
+        write.table(data_to , sep= ",", row.names = F, col.names = F)
+        sink()
+    } else { 
+        data_list <- split(data_to, data_to$year)
+        walk(data_list, function(x){
+            fname <- paste(path,"/", id, stn,".", str_sub(unique(x$year), 2), sep = "")
+            sink(file=fname)
+            if(isTRUE(tag)) print_tag()
+            cat(set_head)
+            cat("\n")
+            write.table(x ,sep=",",row.names=F,col.names=F)
+            sink()})
+        
+        
+        }
+
+}
+
+#ideal data
+#data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
+#data %>% 
+#    write_wth_oryza("R_package/write_files/", "TEST", .,  3.5, -75, 250, multiyear = F, tag = T)
+
+# minimum data
+#data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
+#data %>% 
+#    mutate(
+#        srad = srad_cal(., lat =  3.5, kRs = 0.16)) %>%
+#    write_wth_oryza("R_package/write_files/", "TEST", .,  3.5, -75, 250)
 
