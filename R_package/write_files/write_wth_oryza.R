@@ -139,15 +139,17 @@ cat("*  Column    Daily Value
 
 }
 
-#ideal data
+
+## Usage
+
+# ideal data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
 #data %>% 
 #    write_wth_oryza("R_package/write_files/", "TEST", .,  3.5, -75, 250, multiyear = F, tag = T)
 
 # minimum data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
-#data %>% 
-#    mutate(
-#        srad = srad_cal(., lat =  3.5, kRs = 0.16)) %>%
+#data %>% mutate(
+#    srad = srad_cal(., lat =  3.5, kRs = 0.16)) %>%
 #    write_wth_oryza("R_package/write_files/", "TEST", .,  3.5, -75, 250)
 

@@ -40,35 +40,35 @@ tidy_wth_dssat <- function(wth_data){
   stopifnot(require(sirad))
   stopifnot(class(wth_data$date)=="Date" & all(c("tmax", "tmin", "rain", "srad") %in%  var_names))
   
-  if("VP" %in% var_names){
-    message("Early morning vapor pressure (VP; kPa) in data")
-  } else if(isTRUE(cal_VP) & "rhum" %in% var_names)
-  {
-    wth_data <- mutate(wth_data, 
-                       es = sirad::es(tmax, tmin),         #Determination of mean saturation vapour pressure http://www.fao.org/3/x0490e/x0490e07.htm  - eq.12
-                       VP = es*rhum/100) %>% select(-es)   #Determination of actual vapour pressure vpd http://www.fao.org/3/x0490e/x0490e07.htm  - eq.19
-    message("Early morning vapor pressure (VP; kPa) derived from relative humidity data")
-    
-  } else {
-    wth_data <- mutate(wth_data, VP = NA_real_)
-    message("Vapor Pressure is not Available - VP Set as NA: -99")
-    
-  }
-  
+  if (!"rhum" %in% var_names) {
+    wth_data <- mutate(wth_data, rhum = " ")
+    #    message("Wind Speed is not Available - Set as NA: -99")
+  }  
   
   if (!"wspd" %in% var_names) {
     wth_data <- mutate(wth_data, wspd = " ")
 #    message("Wind Speed is not Available - Set as NA: -99")
-  }
+  } else {wth_data <- mutate(wth_data, wspd = wspd*3.6*24)}  #from wind speed mean (m/s) to (km/day)
   
-  return(wth_data)
+  tav <- wth_data %>% 
+    mutate(tmean = (tmax + tmin)/2 ) %>% 
+    summarise(tav = mean(tmean)) %>% pull(tav)
+  
+  
+  amp <- wth_data %>% 
+    group_by(month(date)) %>%
+    summarise(tmax = mean(tmax), tmin = mean(tmin)) %>%
+    mutate(amp = tmax - tmin) %>% pull(amp) %>% mean
+  
+  return(list(wth_data = wth_data, tav = tav, amp = amp))
   
 }
 
 
-write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, tav = -99, amp = -99, ref_ht = 2) 
+write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, ref_ht = 2){
   
-  make_wth <- function(data, out_dir, lat, long, name_xfile_climate){
+    data <- tidy_wth_dssat(wth_data)
+    data$datadata$wth_data
     
     # Function to write date into DSSAT format
     # 'var' must be object date class
@@ -83,12 +83,14 @@ write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, tav = -99, a
       
     }
     
-    
-    srad <- wth_data$srad
-    tmax <- wth_data$tmax
-    tmin <- wth_data$tmin
-    rain <- wth_data$rain
-    date <- date_for_dssat(data$date) 
+    date <- date_for_dssat(data$wth_data$date)
+    srad <- data$wth_data$srad
+    tmax <- data$wth_data$tmax
+    tmin <- data$wth_data$tmin
+    rain <- data$wth_data$rain
+    wspd <- if(is.numeric(data$wth_data$wspd)) as.character(sprintf("%3.1f", data$wth_data$wspd)) else data$wth_data$wspd 
+    rhum <- if(is.numeric(data$wth_data$rhum)) as.character(sprintf("%2.1f", data$wth_data$rhum)) else data$wth_data$rhum
+     
     
     
     
@@ -101,12 +103,12 @@ write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, tav = -99, a
     cat("\n")
     cat(c("@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"))
     cat("\n")
-    cat(sprintf("%6s %8.3f %8.3f %5.0f %5.1f %5.1f %5.2f %5.2f", "CIAT", lat, lon, elev, tav, amp, ref_ht, ref_ht))
+    cat(sprintf("%6s %8.3f %8.3f %5.0f %5.1f %5.1f %5.1f %5.1f", "CIAT", lat, lon, elev, data$tav, data$amp, ref_ht, ref_ht))
     cat("\n")
     cat(c('@DATE  SRAD  TMAX  TMIN  RAIN  DEWP  WIND   PAR  EVAP  RHUM'))
     cat("\n")
-    cat(cbind(sprintf("%5s %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f %5.1f",
-                      date, srad, tmax, tmin, rain, "", )), sep = "\n")
+    cat(cbind(sprintf("%5s %5.1f %5.1f %5.1f %5.1f %5s %5s %5s %5s %5s",
+                      date, srad, tmax, tmin, rain, " ", wspd, " ", " ", rhum)), sep = "\n")
     sink()
     
     
@@ -114,10 +116,16 @@ write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, tav = -99, a
 
 
 
-#ideal data
+## Usage
+
+# ideal data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
+#data %>% 
+#  write_wth_dssat("R_package/write_files/", "TEST", .,  3.5, -75, 250)
+
+
 # minimum data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
-
-data %>% mutate(srad = srad_cal(., 3.5,250, kRs = 0.16)) %>%
-  write_wth_dssat("R_package/write_files/", "TEST", .,  3.5, -75, 250)
+#data %>% mutate(
+#  srad = srad_cal(., 3.5,250, kRs = 0.16)) %>%
+#  write_wth_dssat("R_package/write_files/", "TEST", .,  3.5, -75, 250)
