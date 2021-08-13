@@ -1,7 +1,7 @@
 # Script to download weather data from NASA-POWER
 # Source of data: NASA Prediction Of Worldwide Energy Resources https://power.larc.nasa.gov/
 # Author: Rodriguez-Espinoza J.
-# Repository: https://github.com/jrodriguez88/ciat_tools
+# Repository: https://github.com/jrodriguez88/agroclimR
 # 2019
 
 ## Load Packages
@@ -26,28 +26,42 @@
 
 
 
-## `get_data_nasapower()`function: Download weather data from https://power.larc.nasa.gov/
+### Update for V2
+#https://power.larc.nasa.gov/dashboard/availability/daily/
+#https://power.larc.nasa.gov/#resources
 get_data_nasapower <- function(lat, lon, ini_date, end_date,
-                               wth_vars = c("PRECTOT", "ALLSKY_SFC_SW_DWN", "RH2M", "T2M_MAX", "T2M_MIN", "WS2M")){
+                               wth_vars = c("ALLSKY_SFC_SW_DWN", "PRECTOTCORR", "RH2M", "T2M_MAX", "T2M_MIN", "WS2M")){
     
     ini_date <- format(ini_date, "%Y%m%d")
     end_date <- format(end_date, "%Y%m%d")
     
-    link <- paste0("https://power.larc.nasa.gov/cgi-bin/v1/DataAccess.py?request=execute&identifier=SinglePoint&parameters=",
-           paste0(wth_vars, collapse = ","),"&startDate=", ini_date, "&endDate=", end_date,
-           "&userCommunity=AG&tempAverage=DAILY&outputList=ASCII&lat=",
-           lat,"&lon=", lon, "&user=anonymous")
-
+    link <- paste0("https://power.larc.nasa.gov/api/temporal/daily/point?start=", 
+                   ini_date, "&end=", end_date, "&latitude=", lat, "&longitude=", lon, "&community=ag&parameters=",
+                   paste0(wth_vars, collapse = ","), "&format=json&header=true&time-standard=lst")
+    
     json_data <- fromJSON(link)
     
-    data <- json_data$features$properties$parameter 
-
-map(data, ~gather(., "date", "value")) %>% 
-    bind_rows(.id = "var") %>%
-    spread(var, value) %>%
-    mutate(date = ymd(date))
-
+    json_data$properties$parameter %>% 
+        map(bind_cols) %>% 
+        map2(.y = names(.),
+             ~pivot_longer(.x, cols = everything(), values_to = .y, names_to = "date") %>%
+                 mutate(date = lubridate::ymd(date))) %>%
+        reduce(left_join, by = "date")
+    
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
