@@ -509,7 +509,7 @@ SSKS_cal <- function(S, C, SOM=1.5, SBDM=1.5, kmin=1, kmax=NA, output='bootmean'
     drop_na() 
   
   summary <- ssks_data %>%
-    summarize(ssks_bootmean = mean(sample(SSKS, 1000, replace = T)),
+    dplyr::summarise(ssks_bootmean = mean(sample(SSKS, 1000, replace = T)),
               ssks_mean = mean(SSKS),
               ssks_bootmedian = median(sample(SSKS, 1000, replace = T)),
               ssks_median = median(SSKS),

@@ -39,6 +39,20 @@
 #}
 #
 
+#Name	    Description												               Mapped units	     Conversion factor	        Conventional units
+#bdod	    Bulk density of the fine earth fraction					               	cg/cm³						100					kg/dm³
+#cec	    Cation Exchange Capacity of the soil					               	mmol(c)/kg					10				cmol(c)/kg
+#cfvo	    Volumetric fraction of coarse fragments (> 2 mm)		               	cm3/dm3 (vol‰)				10	          cm3/100cm3 (vol%)
+#clay	    Proportion of clay particles (< 0.002 mm) in the fine earth fraction	g/kg						10	              g/100g (%)
+#nitrogen 	Total nitrogen (N)														cg/kg						100					g/kg
+#phh2o	    Soil pH																	pHx10						10					pH
+#sand	    Proportion of sand particles (> 0.05 mm) in the fine earth fraction	    g/kg	                    10					g/100g (%)
+#silt	    Proportion of silt particles (≥ 0.002 mm and ≤ 0.05 mm) ifef	        g/kg	                    10					g/100g (%)
+#soc	    Soil organic carbon content in the fine earth fraction					dg/kg						10					g/kg
+#ocd	    Organic carbon density													hg/m³						10					kg/m³
+#ocs	    Organic carbon stocks													t/ha						10					kg/m²
+
+
 #Default value : List [ "bdod", "cec", "cfvo", "clay", "nitrogen", "ocd", "ocs", "phh2o", "sand", "silt", "soc" ]
 #soil_vars <- c("bdod", "cec", "cfvo", "clay", "nitrogen", "ocd", "ocs", "phh2o", "sand", "silt", "soc")
 #Default value : List [ "Q0.05", "Q0.5", "Q0.95", "mean", "uncertainty" ]
@@ -47,7 +61,7 @@
 #depths = c("0-5cm", "5-15cm", "15-30cm", "30-60cm", "60-100cm", "100-200cm") 
 
 ### 'get_data_soilgrids' function for download soilgriddata V2 https://www.isric.org/explore/soilgrids/faq-soilgrids 
-get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "nitrogen", "sand", "silt", "soc"),
+get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "nitrogen", "sand", "silt", "soc", "phh2o", "cec"),
                                value = c("mean"), depths = c("0-5cm", "5-15cm", "15-30cm", "30-60cm", "60-100cm", "100-200cm")){
     
     var_to_dl <- paste0("&property=", soil_vars, collapse = "")
@@ -85,7 +99,7 @@ get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "
 #soilgrids_data %>% unnest(data) %>% select(var, mapped_units) %>% distinct()
 
 
-from_soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 100) {
+soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 100) {
     
     source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
 
@@ -99,7 +113,7 @@ from_soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 
         mutate(Penetrability = Penetrability,
                TKL = c(0.05, diff(abs(range.bottom_depth/100))),
                bdod = bdod/10,
-               OM = (100/58)*soc/100,
+               OM = (100/58)*soc/100, # Organic matter (%) = Total organic carbon (%) x 1.72
                WCFC = WCFC_Saxton(sand, clay, OM),
                WCST = WCST_Saxton(bdod),
                WCWP = WCWP_Saxton(sand, clay, OM),
@@ -114,6 +128,53 @@ from_soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 
                                str_detect(STC, "SaCl|SaClLo|ClLo") ~ (-3.7189 + 0.5922*log(SSKS)),
                                str_detect(STC, "SiClLo|SiCl|Cl") ~ (-1.9165 + 0.7063*log(SSKS)))) %>%
         rename(Gravel = cfvo) %>% 
+        dplyr::select(TKL, WCST, WCFC, WCWP, SSKS, Penetrability, Gravel, CRa, CRb, STC) %>%
+        setNames(c("Thickness", "Sat", "FC", "WP", "Ksat", "Penetrability", "Gravel", "CRa", "CRb", "description"))
+    
+    #CN: Curve number (dimensionless)
+    CN <- data_inp[1,] %>% 
+        mutate(CN = case_when(Ksat <= 10 ~ 85,
+                              Ksat > 10 & Ksat <=50 ~ 80,
+                              Ksat > 50 & Ksat <=250 ~ 75,
+                              Ksat > 250 ~ 65)) %>% pull(CN)
+    
+    
+    # REW: Readily Evaporable Water (mm)
+    REW <- data_inp[1,] %>%
+        mutate(REW_cal = (10*(FC - WP/2)*0.04),
+               REW = case_when(REW_cal >=15 ~ 15, 
+                               REW_cal < 0 ~ 0,
+                               TRUE ~ REW_cal)) %>% pull(REW) %>% sprintf("%1.f", .)
+    
+    
+    return(list(id_name = id_name, data = data_inp[-1,], CN = CN, REW = REW))
+    
+}
+
+
+soilgrids_to_dssat <- function(id_name, soilgrids_data, Penetrability = 100) {
+    
+    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
+    
+    
+    ## transform data to aquacrop format
+#    data_inp <- 
+    soilgrids_data %>% unnest(data) %>% 
+        select(var, range, label, values) %>% flatten() %>%
+        #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
+        pivot_wider(names_from = var, values_from = values.mean) %>% 
+        mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt, phh2o, cec), ~.x/10) %>%
+        mutate(SBL  = range.bottom_depth,
+               SBDM = bdod/10,
+               SLOC = soc/100,
+               SLNI = nitrogen/1000,
+               OM = (100/58)*SLOC, # Organic matter (%) = Total organic carbon (%) x 1.72
+               SDUL = WCFC_Saxton(sand, clay, OM)/100,
+               SSAT = WCST_Saxton(SBDM)/100,
+               SLLL = WCWP_Saxton(sand, clay, OM)/100,
+               SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
+               STC = get_STC(sand, clay)) 
+        rename(SLCF = cfvo, SCEC  = cec ) %>% 
         dplyr::select(TKL, WCST, WCFC, WCWP, SSKS, Penetrability, Gravel, CRa, CRb, STC) %>%
         setNames(c("Thickness", "Sat", "FC", "WP", "Ksat", "Penetrability", "Gravel", "CRa", "CRb", "description"))
     
