@@ -152,48 +152,31 @@ soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 100) 
 }
 
 
-soilgrids_to_dssat <- function(id_name, soilgrids_data, Penetrability = 100) {
+soilgrids_to_dssat <- function(soilgrids_data) {
     
-    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
+#    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
     
     
-    ## transform data to aquacrop format
-#    data_inp <- 
-    soilgrids_data %>% unnest(data) %>% 
-        select(var, range, label, values) %>% flatten() %>%
+    ## transform data to aquacrop dssat format
+    data_inp <- suppressMessages(soilgrids_data %>% unnest(data) %>% 
+        dplyr::select(var, range, label, values) %>% flatten() %>%
         #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
         pivot_wider(names_from = var, values_from = values.mean) %>% 
         mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt, phh2o, cec), ~.x/10) %>%
-        mutate(SBL  = range.bottom_depth,
+        mutate(SLB  = range.bottom_depth,
                SBDM = bdod/10,
                SLOC = soc/100,
                SLNI = nitrogen/1000,
-               OM = (100/58)*SLOC, # Organic matter (%) = Total organic carbon (%) x 1.72
+               OM = (100/58)*SLOC, # Organic matter (%) = Total organic carbon (%) x 1.72 https://www.soilquality.org.au/factsheets/organic-carbon
                SDUL = WCFC_Saxton(sand, clay, OM)/100,
                SSAT = WCST_Saxton(SBDM)/100,
                SLLL = WCWP_Saxton(sand, clay, OM)/100,
                SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
-               STC = get_STC(sand, clay)) 
-        rename(SLCF = cfvo, SCEC  = cec ) %>% 
-        dplyr::select(TKL, WCST, WCFC, WCWP, SSKS, Penetrability, Gravel, CRa, CRb, STC) %>%
-        setNames(c("Thickness", "Sat", "FC", "WP", "Ksat", "Penetrability", "Gravel", "CRa", "CRb", "description"))
-    
-    #CN: Curve number (dimensionless)
-    CN <- data_inp[1,] %>% 
-        mutate(CN = case_when(Ksat <= 10 ~ 85,
-                              Ksat > 10 & Ksat <=50 ~ 80,
-                              Ksat > 50 & Ksat <=250 ~ 75,
-                              Ksat > 250 ~ 65)) %>% pull(CN)
+               STC = get_STC(sand, clay)) %>% 
+        rename(SLCF = cfvo, SCEC  = cec, SLCL = clay, SLHW = phh2o, SLSI = silt ) %>% 
+        dplyr::select(-c(label:bdod, nitrogen, soc, sand))) 
     
     
-    # REW: Readily Evaporable Water (mm)
-    REW <- data_inp[1,] %>%
-        mutate(REW_cal = (10*(FC - WP/2)*0.04),
-               REW = case_when(REW_cal >=15 ~ 15, 
-                               REW_cal < 0 ~ 0,
-                               TRUE ~ REW_cal)) %>% pull(REW) %>% sprintf("%1.f", .)
-    
-    
-    return(list(id_name = id_name, data = data_inp[-1,], CN = CN, REW = REW))
+    dplyr::select(data_inp, SLB, everything())
     
 }

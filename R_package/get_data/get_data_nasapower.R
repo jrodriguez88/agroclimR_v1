@@ -13,7 +13,7 @@
 #library(tictoc)
 
 ##Set arguments. Information about wth_vars and data access : https://power.larc.nasa.gov/docs/v1/
-#wth_vars <- c("PRECTOT" , 
+#wth_vars <- c("PRECTOTCORR" ,    #diff in V2
 #            "ALLSKY_SFC_SW_DWN", 
 #            "RH2M",
 #            "T2M_MAX",
@@ -49,16 +49,6 @@ get_data_nasapower <- function(lat, lon, ini_date, end_date,
         reduce(left_join, by = "date")
     
 }
-
-
-
-
-
-
-
-
-
-
 
 
 

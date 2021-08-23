@@ -539,8 +539,40 @@ SSKS_cal <- function(S, C, SOM=1.5, SBDM=1.5, kmin=1, kmax=NA, output='bootmean'
 #SSKS_cal(39.2, 15.15, 1.14, 1.53, output = 'min')
 
 
+#https://dssat.net/wp-content/uploads/2012/05/Romero-2012-Reanalysis-of-a-global-soil-database-for-crop-and-environmental-modeling.pdf
 
 
+
+
+
+
+#Root growth factor, soil only, 0.0 to 1.0  -- Function to calculate 
+#https://www.researchgate.net/publication/43282937_Effects_of_Estimating_Soil_Hydraulic_Properties_and_Root_Growth_Factor_on_Soil_Water_Balance_and_Crop_Production
+#Higher WCG values produced less root distribution deeper in the soil profile
+
+
+# Eq 1. SRGF or values calculated from Jones et al. (1991)
+
+# where SRGF(z) is the soil root growth factor at soil depth z (dimensionless)
+
+# z <- 10       # Depth, base of layer, cm
+# zmax <- 45    # The maximum rooting depth (cm)
+# wcg <- 3      # Exponential geotropism constant.
+
+
+
+SRGF_cal <- function(z, zmax, wcg){
+  
+  
+  SRGF_ <- ifelse(z <=15 , 1, (1 - (z/zmax))^wcg)
+  
+  return(ifelse(SRGF_ < 0, 0, SRGF_))
+  
+  
+}
+
+
+SRGF_cal(100, 50, 3)
 
 
 

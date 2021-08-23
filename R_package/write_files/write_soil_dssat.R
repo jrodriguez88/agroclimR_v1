@@ -46,11 +46,20 @@
 
 
 
-soil_data_list <- soilgrids_data %>% soilgrids_to_dssat("test", .)
+soil_data_dssat <- soilgrids_data %>% soilgrids_to_dssat()
 
 
 
 tidy_soil_dssat <- function(soil_data){
+  
+  var_names <- colnames(soil_data)
+  stop(
+    if(any(c("depth", "DEPTH", "SLB") %in% var_names) & 
+              any(c("clay", "CLAY", "C", "SLCL") %in%  var_names) &
+              any(c("sand", "SAND", "S") %in%  var_names) &
+              any(c("SBDM", "BD") %in% var_names) &
+              any(c()
+  
   
   #CN: Curve number (dimensionless)
 CN <- soil_data[1,] %>% 
@@ -62,7 +71,7 @@ CN <- soil_data[1,] %>%
   
 SCOM <- "-99"    # SCOM     Color, moist, Munsell hue  
 SALB <- 0.13     # SALB     Albedo, fraction 
-SLU1 <- 6.0        # SLU1     Evaporation limit, mm   
+SLU1 <- 6.0       # SLU1     Evaporation limit, mm   
 SLDR <- 0.6      # SLDR     Drainage rate, fraction day-1
 SLRO <- CN       # SLRO     Runoff curve no. (Soil Conservation Service)
 SLNF <- 1        # SLNF     Mineralization factor, 0 to 1 scale
@@ -90,10 +99,9 @@ SMKE <- "-99"    # SMKE     Potassium determination method, code
 #SSKS <- 7.40       #   Sat. hydraulic conductivity, macropore, cm h-1   
   
   
-  var_names <- colnames(soil_data)
-  stopifnot(class(wth_data$date)=="Date" & all(c("tmax", "tmin", "rain") %in%  var_names))
+
   
-  format_var <- function(soil_data, par, pat = "%3.1f"){
+format_var <- function(soil_data, par, pat = "%3.1f"){
     
     par <- soil_data[[par]]
     
@@ -107,22 +115,27 @@ SMKE <- "-99"    # SMKE     Potassium determination method, code
     
   }
   
-  
 soil_data_col <- c('SLB', 'SLMH', 'SLLL', 'SDUL', 'SSAT', 'SRGF', 'SSKS', 'SBDM', 'SLOC', 'SLCL', 'SLSI', 'SLCF', 'SLNI', 'SLHW', 'SLHB', 'SCEC', 'SADC')
 format_data_col <- c("%6.0f", "%5s", "%5.3f", "%5.3f", "%5.3f", "%5.3f", "%5.2f", "%5.2f", "%5.2f", "%5.1f", "%5.1f", "%5.1f", " %5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f") 
 
+
 soil_tb <- map2(soil_data_col, format_data_col, 
                 ~format_var(soil_data = soil_data, par = .x, pat = .y)) %>% 
-  set_names(soil_data_col) %>% bind_cols()  
+  set_names(soil_data_col) %>% bind_cols() 
+
+
+
   
 }
+
+
 
 id_name <- "testname"
 lat <- 13.9
 lon <- -86.0
 
 
-write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13){
+write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, srgf = 1, evapL=6, sldr = 0.6, slnf = 1, slpf = 1) {
   
   
 sink(paste0(path, id_name, '.SOL'), append = F)
