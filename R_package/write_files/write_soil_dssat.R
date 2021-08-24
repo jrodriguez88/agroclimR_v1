@@ -1,4 +1,4 @@
-#### Write_soil_dssat
+# Script to create DSSAT Soil File 
 # Author: Rodriguez-Espinoza J.
 # Repository: https://github.com/jrodriguez88/agroclimR
 # 2021
@@ -45,40 +45,90 @@
 
 
 
+#https://www.researchgate.net/publication/232108129_Modifications_to_the_Dssat_Vertical_Drainage_Model_for_More_Accurate_Soil_Water_Dynamics_Estimation
+# A soil drainage rate of 0.4 (fraction day −1 ) is recommended for moderately drained soils
+#Soil drainage rate directly affects the amount of plant available water, and hence accurate calculation of crop yield (Suleiman and Ritchie, 2004)
 
-soil_data_dssat <- soilgrids_data %>% soilgrids_to_dssat()
+## Arguments
+#path <- "R_package/"
+#id_name <- "TEST"
+#soil_data_test <- get_data_soilgrids(lat = 13.9, lon = -86.5) %>% soilgrids_to_dssat()
+#sldr <- 0.6   #Drainage rate, fraction day-1
+#salb <- 0.13  #Albedo, fraction 
+#evapL <- 6    #Evaporation limit, mm 
+#slnf <- 1     #Mineralization factor, 0 to 1 scale
+#slpf <- 1     #Photosynthesis factor, 0 to 1 scale 
+
+### Function to write . SOL files
+#Dependencies:
+#library(tidyverse)
+write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sldr = 0.6, slnf = 1, slpf = 1) {
+  
+  
+  
+ tidy_soil_dssat <- function(soil_data){
+    
+    var_names <- colnames(soil_data)
+    if(all(any(c("depth", "DEPTH", "SLB") %in% var_names) & 
+           any(c("clay", "CLAY", "C", "SLCL") %in%  var_names) &
+           any(c("sand", "SAND", "S", "silt", "SILT", "SLSI", "Si") %in%  var_names) &
+           any(c("sbdm", "SBDM", "BD") %in% var_names) &
+           any(c("soc", "SOC", "OM") %in% var_names))){
+      
+      message("Minimun data are available")
+      
+    } else {stop(message("NO data")) }
+    
+    
+    SRGF <- soil_data[c("depth", "DEPTH", "SLB")[which(c("depth", "DEPTH", "SLB") %in% var_names)]] %>%
+      mutate(SRGF = SRGF_cal(pull(.), max(.), 3)) %>% pull(SRGF)
+    
+    soil_data <- soil_data %>% mutate(SRGF = SRGF)
+    
+    
+    #CN: Curve number (dimensionless)
+    CN <- soil_data[1,] %>% 
+      mutate(SSKS = SSKS*10, 
+             CN = case_when(SSKS <= 10 ~ 85,
+                            SSKS > 10 & SSKS <=50 ~ 80,
+                            SSKS > 50 & SSKS <=250 ~ 75,
+                            SSKS > 250 ~ 65)) %>% pull(CN)
+    
+    
+    list(soil_data, CN)
+    
+    
+  }
+  
+  
+stc <- soil_data$STC  
+data <- tidy_soil_dssat(soil_data)
 
 
-
-tidy_soil_dssat <- function(soil_data){
-  
-  var_names <- colnames(soil_data)
-  stop(
-    if(any(c("depth", "DEPTH", "SLB") %in% var_names) & 
-              any(c("clay", "CLAY", "C", "SLCL") %in%  var_names) &
-              any(c("sand", "SAND", "S") %in%  var_names) &
-              any(c("SBDM", "BD") %in% var_names) &
-              any(c()
-  
-  
-  #CN: Curve number (dimensionless)
-CN <- soil_data[1,] %>% 
-    mutate(SSKS = SSKS*10, 
-           CN = case_when(SSKS <= 10 ~ 85,
-                          SSKS > 10 & SSKS <=50 ~ 80,
-                          SSKS > 50 & SSKS <=250 ~ 75,
-                          SSKS > 250 ~ 65)) %>% pull(CN)
-  
 SCOM <- "-99"    # SCOM     Color, moist, Munsell hue  
-SALB <- 0.13     # SALB     Albedo, fraction 
-SLU1 <- 6.0       # SLU1     Evaporation limit, mm   
-SLDR <- 0.6      # SLDR     Drainage rate, fraction day-1
-SLRO <- CN       # SLRO     Runoff curve no. (Soil Conservation Service)
-SLNF <- 1        # SLNF     Mineralization factor, 0 to 1 scale
-SLPF <- 0.95     # SLPF     Photosynthesis factor, 0 to 1 scale 
+SALB <- salb     # SALB     Albedo, fraction 
+SLU1 <- evapL       # SLU1     Evaporation limit, mm   
+SLDR <- sldr      # SLDR     Drainage rate, fraction day-1
+SLRO <- data[[2]]       # SLRO     Runoff curve no. (Soil Conservation Service)
+SLNF <- slnf        # SLNF     Mineralization factor, 0 to 1 scale
+SLPF <- slpf     # SLPF     Photosynthesis factor, 0 to 1 scale 
 SMHB <- "-99"    # SMHB     pH in buffer determination method, code
 SMPX <- "-99"    # SMPX     Phosphorus determination code 
 SMKE <- "-99"    # SMKE     Potassium determination method, code
+
+format_var <- function(soil_data, par, pat = "%3.1f"){
+  
+  par <- soil_data[[par]]
+  
+  if(is.numeric(par)){
+    as.character(sprintf(pat, par))
+  } else if (is.null(par)){
+    "-99"
+  } else {
+    par
+  }
+  
+}
 
 #SLB  <- 5          #   Depth, base of layer, cm
 #SBDM <- 1.37       #   Bulk density, moist, g cm-3                                          
@@ -96,62 +146,34 @@ SMKE <- "-99"    # SMKE     Potassium determination method, code
 #SLSI <- 26.0       #   Silt (0.05 to 0.002 mm), %                                           
 #SRGF <- 0.988       #   Root growth factor, soil only, 0.0 to 1.0                            
 #SSAT <- 0.412       #   Upper limit, saturated, cm3 cm-3                                     
-#SSKS <- 7.40       #   Sat. hydraulic conductivity, macropore, cm h-1   
-  
-  
+#SSKS <- 7.40       #   Sat. hydraulic conductivity, macropore, cm h-1 
 
-  
-format_var <- function(soil_data, par, pat = "%3.1f"){
-    
-    par <- soil_data[[par]]
-    
-    if(is.numeric(par)){
-      as.character(sprintf(pat, par))
-    } else if (is.null(par)){
-      "-99"
-    } else {
-      par
-    }
-    
-  }
-  
+
 soil_data_col <- c('SLB', 'SLMH', 'SLLL', 'SDUL', 'SSAT', 'SRGF', 'SSKS', 'SBDM', 'SLOC', 'SLCL', 'SLSI', 'SLCF', 'SLNI', 'SLHW', 'SLHB', 'SCEC', 'SADC')
-format_data_col <- c("%6.0f", "%5s", "%5.3f", "%5.3f", "%5.3f", "%5.3f", "%5.2f", "%5.2f", "%5.2f", "%5.1f", "%5.1f", "%5.1f", " %5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f") 
+format_data_col <- c("%6.0f", "%5s", "%5.3f", "%5.3f", "%5.3f", "%5.3f", "%5.2f", "%5.2f", "%5.2f", "%5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f", "%5.1f") 
 
 
 soil_tb <- map2(soil_data_col, format_data_col, 
-                ~format_var(soil_data = soil_data, par = .x, pat = .y)) %>% 
+                  ~format_var(soil_data = data[[1]], par = .x, pat = .y)) %>% 
   set_names(soil_data_col) %>% bind_cols() 
 
 
-
-  
-}
-
-
-
-id_name <- "testname"
-lat <- 13.9
-lon <- -86.0
-
-
-write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, srgf = 1, evapL=6, sldr = 0.6, slnf = 1, slpf = 1) {
   
   
 sink(paste0(path, id_name, '.SOL'), append = F)
 
 
-
-cat(paste0("*SOIL DATA : ",  id_name, "DSSAT Soil file - by https://github.com/jrodriguez88/agroclimR"), sep = "\n")
+cat(paste0("*SOIL DATA : ",  id_name, " - DSSAT Soil file - by https://github.com/jrodriguez88/agroclimR"), sep = "\n")
 cat("\n")
-cat(paste0("*CIAT000001   - ", id_name, " -  USDA Texture Class: ", stc[1]), sep = "\n")
+cat(paste0("*CIAT000001   - ", id_name, " -  USDA Texture Class: ", stc[[1]]), sep = "\n")
 cat(c("@SITE        COUNTRY          LAT     LONG SCS FAMILY"), sep = "\n")
-cat(sprintf("%13s %14s %8.3f %8.3f %16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", paste(soil_data[1:nrow(soil_data),"STC"], collapse = "-"))))
+cat(sprintf("%11s %11s %10.3f %8.3f %16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
 cat("\n")
 cat(c('@ SCOM  SALB  SLU1  SLDR  SLRO  SLNF  SLPF  SMHB  SMPX  SMKE'))
 cat("\n")
 cat(sprintf("%6s %5.2f %5.1f %5.2f %5.1f %5.2f %5.2f %5s %5s %5s", 
             SCOM, SALB, SLU1, SLDR, SLRO, SLNF, SLPF, SMHB, SMPX, SMKE))
+cat("\n")
 cat(c('@  SLB  SLMH  SLLL  SDUL  SSAT  SRGF  SSKS  SBDM  SLOC  SLCL  SLSI  SLCF  SLNI  SLHW  SLHB  SCEC  SADC'))
 cat("\n")
 cat(cbind(sprintf("%6s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s",
@@ -163,22 +185,11 @@ sink()
 }
 
 
-
-soil_data <- soil_data_list$data
-
+write_soil_dssat(path, id_name, soil_data_test)
 
 
 
 
-
-
-                    
-
-  
-
-
-
-  
 
 
 
