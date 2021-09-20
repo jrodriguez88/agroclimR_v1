@@ -14,9 +14,9 @@
 #REW <- 11
 ### Function to write . SOL files
 
-make_soil_aquacrop <- function(path, id_name, data, CN, REW, model_version = 6.1) {
+write_soil_aquacrop <- function(path, id_name, soil_data, CN, REW, model_version = 6.1) {
     
-    data <- as.data.frame(data)
+    data <- as.data.frame(soil_data)
 
     sink(paste0(path, "/", id_name, ".SOL"), F)    
     cat(paste0(id_name, " AquaCrop soil file - by https://github.com/jrodriguez88"))

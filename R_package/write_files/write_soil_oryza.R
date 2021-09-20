@@ -1,3 +1,8 @@
+# Script to create ORYZA Soil File 
+# Author: Rodriguez-Espinoza J.
+# Repository: https://github.com/jrodriguez88/agroclimR
+# 2021
+
 ## Make Soil
 #load("SOILDB_raw.RData")
 #data -> raw_data 
@@ -32,6 +37,54 @@
 ### RIWCLI Re-initialize switch RIWCLI is YES or NO
 ### SATAV Soil annual average temperature of the first layers
 
+
+### Function to write . SOL files
+
+soilgrids_data
+
+
+
+tidy_soil_oryza <- function(soil_data){
+  
+  var_names <- colnames(soil_data)
+  if(all(any(c("depth", "DEPTH", "SLB") %in% var_names) & 
+         any(c("clay", "CLAY", "C", "SLCL") %in%  var_names) &
+         any(c("sand", "SAND", "S", "silt", "SILT", "SLSI", "Si") %in%  var_names) &
+         any(c("sbdm", "SBDM", "BD") %in% var_names) &
+         any(c("soc", "SOC", "OM") %in% var_names))){
+    
+    message("Minimun data are available")
+    
+  } else {stop(message("NO data")) }
+  
+  
+  data <- soil_data %>%
+    mutate(SOC = DEPTH*SBDM*100*SC/0.58,
+           SON = DEPTH*SBDM*SLON/10,
+           SNH4X = DEPTH*SBDM*SNH4/10,
+           SNO3X = DEPTH*SBDM*SNO3/10)
+  
+  
+  list(soil_data, CN)
+  
+}
+  
+
+
+#path <- "R_package/"
+#id_name <- "TEST"
+#soil_data_test <- get_data_soilgrids(lat = 13.9, lon = -86.5)
+
+write_soil_dssat <- function(path, id_name, soil_data, ZRTMS = 0.50, WL0I = 0, WCLI='FC' , RIWCLI = 'NO', SATAV=24){
+  
+  inpp <- function(x, div=1){paste0(sprintf("%.2f", (data[[x]]/div)), collapse = ", ")}
+  
+  
+  
+  
+  
+}
+
 write_soil_oryza <- function(data, path, ZRTMS = 0.50, WL0I = 0, WCLI='FC' , RIWCLI = 'NO', SATAV=24){
     stopifnot(require(tidyverse)==T)
     inpp <- function(x, div=1){paste0(sprintf("%.2f", (data[[x]]/div)), collapse = ", ")}
@@ -53,8 +106,8 @@ cat("* Template soil data file for PADDY soil water balance model.        *",sep
 cat("**********************************************************************",sep = '\n')
 cat(paste0("* Soil        : ", unique(data["LOC_ID"]), " - texture classes:", paste(data[1:nrow(data),"STC"], collapse = "-"), sep = '\n'))
 cat(paste0('* File name        : ', unique(data["ID"]), ".sol"), sep = '\n') 
-cat(paste0('* Sampling date      : ',data$SAMPLING_DATE[1] ) ,sep = '\n') 
-cat(paste0('* Additional info  : ', 'Create with https://github.com/jrodriguez88/ORYZA_Model_RTOOLS') ,sep = '\n') 
+cat(paste0('* Sampling date      : ', data$SAMPLING_DATE[1] ) ,sep = '\n') 
+cat(paste0('* Additional info  : ', 'Create with https://github.com/jrodriguez88') ,sep = '\n') 
 cat('*--------------------------------------------------------------------*',sep = '\n') 
 
 cat('\n')

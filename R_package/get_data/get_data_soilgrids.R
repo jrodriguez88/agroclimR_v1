@@ -1,8 +1,8 @@
 # Script to download soil data from SOILGRIDS
 # Source of data: https://www.soilgrids.org/  
 # Author: Rodriguez-Espinoza J.
-# Repository: https://github.com/jrodriguez88/ciat_tools
-# 2019
+# Repository: https://github.com/jrodriguez88/agroclimR
+# 2021
 
 ## Load Packages
 #library(tidyverse)
@@ -83,7 +83,7 @@ get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "
  units <- json_data$properties$layers$unit_measure
  
  mdata <- enframe(vars, value = "var", name = NULL) %>% 
-     bind_cols(units) %>% select(-uncertainty_unit)
+     bind_cols(units) %>% dplyr::select(-uncertainty_unit)
  
  data <- json_data$properties$layers$depths %>% 
      set_names(vars) %>% 
@@ -99,18 +99,18 @@ get_data_soilgrids <- function(lat, lon, soil_vars = c("bdod", "cfvo", "clay", "
 #soilgrids_data %>% unnest(data) %>% select(var, mapped_units) %>% distinct()
 
 
-soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 100) {
+soilgrids_to_aquacrop <- function(soilgrids_data) {
     
-    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
+#    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
 
     
     ## transform data to aquacrop format
     data_inp <- soilgrids_data %>% unnest(data) %>% 
-        select(var, range, label, values) %>% flatten() %>%
+        dplyr::select(var, range, label, values) %>% flatten() %>%
         #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
         pivot_wider(names_from = var, values_from = values.mean) %>% 
         mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt), ~.x/10) %>%
-        mutate(Penetrability = Penetrability,
+        mutate(Penetrability = 100,
                TKL = c(0.05, diff(abs(range.bottom_depth/100))),
                bdod = bdod/10,
                OM = (100/58)*soc/100, # Organic matter (%) = Total organic carbon (%) x 1.72
@@ -147,9 +147,23 @@ soilgrids_to_aquacrop <- function(id_name, soilgrids_data, Penetrability = 100) 
                                TRUE ~ REW_cal)) %>% pull(REW) %>% sprintf("%1.f", .)
     
     
-    return(list(id_name = id_name, data = data_inp[-1,], CN = CN, REW = REW))
+    # in Aquacrop. Up to 5 soil horizons can be specified. Soilgrids= 6 layer. first layer (5cm) join to second layer (10cm). 
+    l1 <- unname(unlist(data_inp[1,2:9]))/3
+    l2 <- unname(unlist(data_inp[2,2:9]))*2/3
+    
+    l12 <- c(0.15, l1+l2, data_inp[[2,10]])
+    
+    soil_df <- rbind(slice(data_inp, 3:nrow(data_inp)), l12) %>% 
+        mutate(across(-description, as.numeric)) %>%
+        slice(5, 1:4)
+    
+
+    return(list(data = soil_df, CN = CN, REW = REW))
     
 }
+
+
+
 
 
 soilgrids_to_dssat <- function(soilgrids_data) {
@@ -175,6 +189,36 @@ soilgrids_to_dssat <- function(soilgrids_data) {
                STC = get_STC(sand, clay)) %>% 
         rename(SLCF = cfvo, SCEC  = cec, SLCL = clay, SLHW = phh2o, SLSI = silt ) %>% 
         dplyr::select(-c(label:bdod, nitrogen, soc, sand))) 
+    
+    
+    dplyr::select(data_inp, SLB, everything())
+    
+}
+
+
+soilgrids_to_oryza <- function(soilgrids_data) {
+    
+    #    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
+    
+    
+    ## transform data to aquacrop dssat format
+    data_inp <- suppressMessages(soilgrids_data %>% unnest(data) %>% 
+                                     dplyr::select(var, range, label, values) %>% flatten() %>%
+                                     #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
+                                     pivot_wider(names_from = var, values_from = values.mean) %>% 
+                                     mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt, phh2o, cec), ~.x/10) %>%
+                                     mutate(DEPTH  = c(15, diff(abs(range.bottom_depth)))),
+                                            SBDM = bdod/10,
+                                            SLOC = soc/100,
+                                            SLNI = nitrogen/1000,
+                                            OM = (100/58)*SLOC, # Organic matter (%) = Total organic carbon (%) x 1.72 https://www.soilquality.org.au/factsheets/organic-carbon
+                                            WCFC = WCFC_Saxton(sand, clay, OM)/100,
+                                            WCST = WCST_Saxton(SBDM)/100,
+                                            WCWP = WCWP_Saxton(sand, clay, OM)/100,
+                                            SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
+                                            STC = get_STC(sand, clay)) %>% 
+                                     rename(sand = SAND, CLAY = clay, SLHW = phh2o, SILT = silt ) %>% 
+                                     dplyr::select(-c(label:bdod, nitrogen, soc, sand))) 
     
     
     dplyr::select(data_inp, SLB, everything())

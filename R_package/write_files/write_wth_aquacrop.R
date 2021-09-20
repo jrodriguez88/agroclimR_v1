@@ -34,6 +34,9 @@
 ## 'lon':   longitud (decimal degrees)
 ## 'elev':  elevation (meters above sea level)
 
+
+#http://www.scielo.org.mx/pdf/iit/v14n2/v14n2a3.pdf
+
 ETo_cal <- function(wth_data, lat, elev, ref_ht = 2, kRs = 0.175, ws_mean = 2){
     
     stopifnot(require(sirad))

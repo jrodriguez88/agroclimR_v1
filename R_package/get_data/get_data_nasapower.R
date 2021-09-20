@@ -60,11 +60,11 @@ from_nasa_to_model <- function(df){
 #    stopifnot(require(naniar))
     
     df %>% 
-        replace_with_na_all(condition = ~.x == -99) %>%
+        replace_with_na_all(condition = ~.x == -999) %>%
         set_names(c("date", "srad", "rain", "rhum", "tmax", "tmin", "wspd")) %>%
         mutate(year = year(date), month = month(date), day = day(date)) %>% nest(data = -c(year, month)) %>%
         mutate(data = map(data, ~.x %>% impute_mean_at(.vars = vars(srad:wspd)))) %>% 
-    unnest(data) %>% impute_mean_at(.vars = vars(srad:wspd))
+    unnest(data) #%>% impute_mean_at(.vars = vars(srad:wspd))
     
 }
 

@@ -570,9 +570,7 @@ SRGF_cal <- function(z, zmax, wcg){
   
   
 }
-
-
-SRGF_cal(100, 50, 3)
+#SRGF_cal(100, 50, 3)
 
 
 

@@ -157,7 +157,7 @@ plot_resampling <- function(data_resampling, weather_data, id_label = NULL, stat
 plot_weather_series <- function(weather_data, id_label = NULL){
     
     #Set Names and labels  
-    var_name = c("rain", "rain", "srad", "tmin", "tmax", "rhum", "wspd")
+    var_name = c("rain", "prec", "srad", "tmin", "tmax", "rhum", "wspd")
     var_label = paste(var_name, c('(mm)', '(mm)', '(MJ/m²d)', '(°C)', '(°C)', '(%)', '(m/s)'))
     names(var_label) <- var_name
     
@@ -198,9 +198,9 @@ plot_weather_series <- function(weather_data, id_label = NULL){
         labs(title = paste0("Climatologia de ",  id_label),
              subtitle = "Boxplot Mensual",
              x = "Mes",
-             y =  NULL) +
-        scale_fill_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))+
-        scale_color_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))
+             y =  NULL) #+
+#        scale_fill_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))+
+#        scale_color_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))
     
 }
 
