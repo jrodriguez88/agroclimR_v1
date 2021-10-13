@@ -358,7 +358,7 @@ cal_metrics_wth <- function(obs_data, sim_data, time = "monthly"){
 }
 
 
-plot_na  <- function(id, data) {
+plot_na_wth  <- function(id, data) {
   
   
   
