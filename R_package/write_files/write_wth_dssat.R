@@ -10,8 +10,8 @@
 #library(lubridate)
 
 
-#path <- paste0(getwd(), "/outputs/weather/")
-#id_name <- "test_name"
+#path <- "R_package/"
+#id_name <- "TEST"
 #lat <- 13.9
 #alt <- 657
 #wth_data <- read.csv("data/weather_to_aquacrop.csv") %>% 
@@ -32,6 +32,7 @@
 ## 'lat':   latitud (decimal degrees)
 ## 'lon':   longitud (decimal degrees)
 ## 'elev':  elevation (meters above sea level)
+## 'ref_ht': reference height - weather station 
 
 tidy_wth_dssat <- function(wth_data){
   
@@ -120,12 +121,12 @@ write_wth_dssat <-function(path, id_name, wth_data, lat, lon, elev, ref_ht = 2){
 
 # ideal data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
-#data %>% 
-#  write_wth_dssat("R_package/write_files/", "TEST", .,  3.5, -75, 250)
+#data %>% impute_mean_wth() %>% write_wth_dssat("R_package/write_files/", "TEST", .,  lat, lon, elev)
 
 
 # minimum data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
+#
 #data %>% mutate(
-#  srad = srad_cal(., 3.5,250, kRs = 0.16)) %>%
-#  write_wth_dssat("R_package/write_files/", "TEST", .,  3.5, -75, 250)
+#  srad = srad_cal(., lat, elev, kRs = 0.16)) %>% impute_mean_wth() %>%
+#  write_wth_dssat("R_package/write_files/", "TEST", .,  lat, lon, elev)

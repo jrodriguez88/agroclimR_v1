@@ -51,7 +51,7 @@
 
 ## Arguments
 #path <- "R_package/"
-#id_name <- "TEST"
+#id_name <- "JR" 
 #soil_data_test <- get_data_soilgrids(lat = 13.9, lon = -86.5) %>% soilgrids_to_dssat()
 #sldr <- 0.6   #Drainage rate, fraction day-1
 #salb <- 0.13  #Albedo, fraction 
@@ -62,7 +62,7 @@
 ### Function to write . SOL files
 #Dependencies:
 #library(tidyverse)
-write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sldr = 0.6, slnf = 1, slpf = 1) {
+write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sldr = 0.6, slnf = 1, slpf = 1, multi = F) {
   
   
   
@@ -79,7 +79,7 @@ write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sld
       
     } else {stop(message("NO data")) }
     
-    
+    # require SRGF_cal function --> utils_crop_model
     SRGF <- soil_data[c("depth", "DEPTH", "SLB")[which(c("depth", "DEPTH", "SLB") %in% var_names)]] %>%
       mutate(SRGF = SRGF_cal(pull(.), max(.), 3)) %>% pull(SRGF)
     
@@ -157,17 +157,48 @@ soil_tb <- map2(soil_data_col, format_data_col,
                   ~format_var(soil_data = data[[1]], par = .x, pat = .y)) %>% 
   set_names(soil_data_col) %>% bind_cols() 
 
+#create id for multisoil profile
+if (isFALSE(multi)){
+  idsoilAR <- 1
+  idsoilAR <<- idsoilAR
+  file.remove(paste0(path, id_name, '.SOL'))
+} else if (all(!exists("idsoilAR"), isTRUE(multi))){
+  file.remove(paste0(path, id_name, '.SOL'))
+  idsoilAR <- 1
+  idsoilAR <<- idsoilAR
+  } else if (all(exists("idsoilAR"), isTRUE(multi), idsoilAR==1)){
+#    file.remove(paste0(path, id_name, '.SOL'))
+#    idsoilAR <- idsoilAR + 1
+    idsoilAR <<- idsoilAR + 1
+  } else if (all(exists("idsoilAR"), isTRUE(multi), idsoilAR>1)){
+    idsoilAR <- idsoilAR + 1
+    idsoilAR <<- idsoilAR
+    }
 
+id_acjr <- paste0("*JRAR", str_pad(idsoilAR, width = 6, "left", "0"))
+
+max_depth <- soil_tb$SLB[[nrow(soil_tb)]]
+texture <- toupper(str_sub(stc[[1]],1,2))
   
   
-sink(paste0(path, id_name, '.SOL'), append = F)
+sink(paste0(path, id_name, '.SOL'), append = multi)
+if (isFALSE(multi)){
+  cat("*SOILS: AgroclimR DSSAT Soil Input File - by https://github.com/jrodriguez88/agroclimR", sep = "\n")
+  cat("\n")
+}
+else if(all(exists("idsoilAR"), idsoilAR==1)){
+  cat("*SOILS: AgroclimR DSSAT Soil Input File - by https://github.com/jrodriguez88/agroclimR", sep = "\n")
+  cat("\n")
+} else if(all(exists("idsoilAR"), isTRUE(multi), idsoilAR>1)){
+  cat("\n")
+}
 
-
-cat(paste0("*SOIL DATA : ",  id_name, " - DSSAT Soil file - by https://github.com/jrodriguez88/agroclimR"), sep = "\n")
+#cat(paste0("!AgroclimR DSSAT Soil: ",  id_name, " - by https://github.com/jrodriguez88/agroclimR"), sep = "\n")
+#cat("\n")
+cat(sprintf("%11s %10s %4s %7s %1s",id_acjr, " SoilGridsV2", texture , max_depth,  paste0(" AgroClimR ", id_name)))
 cat("\n")
-cat(paste0("*CIAT000001   - ", id_name, " -  USDA Texture Class: ", stc[[1]]), sep = "\n")
 cat(c("@SITE        COUNTRY          LAT     LONG SCS FAMILY"), sep = "\n")
-cat(sprintf("%11s %11s %10.3f %8.3f %16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
+cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
 cat("\n")
 cat(c('@ SCOM  SALB  SLU1  SLDR  SLRO  SLNF  SLPF  SMHB  SMPX  SMKE'))
 cat("\n")
@@ -180,12 +211,19 @@ cat(cbind(sprintf("%6s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %
                   soil_tb$SLB, soil_tb$SLMH, soil_tb$SLLL, soil_tb$SDUL, soil_tb$SSAT, soil_tb$SRGF, soil_tb$SSKS, 
                   soil_tb$SBDM, soil_tb$SLOC, soil_tb$SLCL, soil_tb$SLSI, soil_tb$SLCF, soil_tb$SLNI, soil_tb$SLHW, 
           soil_tb$SLHB, soil_tb$SCEC, soil_tb$SADC)), sep = "\n")
+#if(isTRUE(multi)){cat("\n")}
 sink()
   
 }
 
 
-write_soil_dssat(path, id_name, soil_data_test)
+## Usage -- 
+
+# SoilGrids data
+
+soil_data <- soilgrids_data %>% soilgrids_to_dssat()
+write_soil_dssat("C:/DSSAT47/Soil/", "JR", soil_data, multi = F)
+
 
 
 

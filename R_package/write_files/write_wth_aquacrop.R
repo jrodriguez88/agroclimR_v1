@@ -230,14 +230,14 @@ write_wth_aquacrop <-function(path, id_name, wth_data, lat, lon, elev, co2_file 
 
 # ideal data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date))
-#data %>% mutate(ETo = ETo_cal(., 3.5, 250)) %>%
-#    write_wth_aquacrop("R_package/write_files/", "TEST", ., 3.5, -75, 250)
+#data %>% mutate(ETo = ETo_cal(., lat, elev)) %>%
+#    write_wth_aquacrop("R_package/write_files/", "TEST", ., lat, lon, elev)
     
 
 # minimum data
 #data <- read_csv("data/wth_data.csv") %>% mutate(date  = lubridate::mdy(date)) %>% select(date, tmax, tmin, rain)
-#data %>% mutate(ETo = ETo_cal(., 3.5, 250)) %>%
-#    write_wth_aquacrop("R_package/write_files/", "TEST", ., 3.5, -75, 250)
+#data %>% mutate(ETo = ETo_cal(., lat, elev)) %>%
+#    write_wth_aquacrop("R_package/write_files/", "TEST", ., lat, lon, elev)
 
  
 

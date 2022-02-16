@@ -5,9 +5,9 @@
 # 2021
 
 ## Load Packages
-#library(tidyverse)
-#library(jsonlite)
-#library(soiltexture)
+library(tidyverse)
+library(jsonlite)
+library(soiltexture)
 #library(tictoc)
 
 
@@ -163,9 +163,6 @@ soilgrids_to_aquacrop <- function(soilgrids_data) {
 }
 
 
-
-
-
 soilgrids_to_dssat <- function(soilgrids_data) {
     
 #    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
@@ -207,7 +204,7 @@ soilgrids_to_oryza <- function(soilgrids_data) {
                                      #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
                                      pivot_wider(names_from = var, values_from = values.mean) %>% 
                                      mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt, phh2o, cec), ~.x/10) %>%
-                                     mutate(DEPTH  = c(15, diff(abs(range.bottom_depth)))),
+                                     mutate(DEPTH  = c(15, diff(abs(range.bottom_depth))),
                                             SBDM = bdod/10,
                                             SLOC = soc/100,
                                             SLNI = nitrogen/1000,
@@ -218,7 +215,7 @@ soilgrids_to_oryza <- function(soilgrids_data) {
                                             SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
                                             STC = get_STC(sand, clay)) %>% 
                                      rename(sand = SAND, CLAY = clay, SLHW = phh2o, SILT = silt ) %>% 
-                                     dplyr::select(-c(label:bdod, nitrogen, soc, sand)) 
+                                     dplyr::select(-c(label:bdod, nitrogen, soc, sand)))
     
     
     dplyr::select(data_inp, SLB, everything())

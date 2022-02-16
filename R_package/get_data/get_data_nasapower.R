@@ -19,7 +19,7 @@
 #            "T2M_MAX",
 #            "T2M_MIN",
 #            "WS2M")
-#ini_date <- ymd("1983-01-01")
+#ini_date <- ymd("1988-01-01")
 #end_date <- ymd("2019-12-31")
 #lat <- 6.8
 #lon <- -58.1
@@ -57,7 +57,7 @@ get_data_nasapower <- function(lat, lon, ini_date, end_date,
 
 from_nasa_to_model <- function(df){
     
-#    stopifnot(require(naniar))
+    stopifnot(require(naniar))
     
     df %>% 
         replace_with_na_all(condition = ~.x == -999) %>%
@@ -99,7 +99,7 @@ from_nasa_to_model <- function(df){
 # data %>% from_nasa_to_model() %>%  basic_qc_nasa()
 #
 ### Plot data example
-#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, PRECTOT)) + geom_line()
+#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, PRECTOTCORR)) + geom_line()
 #    
 ### Replace "NA" id and export to .csv
 #data %>% replace_with_na_all(condition = ~.x == -999) %>% write_csv("data.csv")

@@ -6,13 +6,35 @@
 ### Load packages
 #library(tidyverse)
 
-### Read data from csv 
+#https://cran.r-project.org/web/packages/soiltexture/vignettes/soiltexture_vignette.pdf
+### 'get_STC' function to get Soil Texture Class from soil sand, clay content.. based USDA system class
+get_STC <- function(S, C, sysclass="USDA") {
+    stopifnot(require(soiltexture))
+    
+    Si <- 100-(S+C)
+    dat <- data.frame(SAND=S, CLAY=C, SILT=Si)
+    
+    STC <- TT.points.in.classes(
+        tri.data = dat,
+        class.sys = paste0(sysclass, ".TT"),
+        PiC.type = "t"
+    )
+    
+    return(STC)
+    
+}
 
+
+
+
+### Function to write . SOL files
+### Read data from csv 
 #data <- read.csv("data/soil_to_aquacrop.csv")
+
 #id_name <- "soilname"
 #CN <- 72
 #REW <- 11
-### Function to write . SOL files
+
 
 write_soil_aquacrop <- function(path, id_name, soil_data, CN, REW, model_version = 6.1) {
     
@@ -43,26 +65,10 @@ write_soil_aquacrop <- function(path, id_name, soil_data, CN, REW, model_version
     
 }
 
-#make_soil_aquacrop(id_name, data, CN, REW, model_version = 6.1)
+#write_soil_aquacrop("R_package/write_files/", id_name, data, CN, REW, model_version = 6.1)
 
 ### organize soil data
 # Inf from API query
 
-
-#https://cran.r-project.org/web/packages/soiltexture/vignettes/soiltexture_vignette.pdf
-### 'get_STC' function to get Soil Texture Class from soil sand, clay content.. based USDA system class
-get_STC <- function(S, C, sysclass="USDA") {
-    stopifnot(require(soiltexture))
-    
-    Si <- 100-(S+C)
-    dat <- data.frame(SAND=S, CLAY=C, SILT=Si)
-    
-    STC <- TT.points.in.classes(
-        tri.data = dat,
-        class.sys = paste0(sysclass, ".TT"),
-        PiC.type = "t"
-    )
-    
-    return(STC)
-    
-}
+#soil_data <- soilgrids_data %>% soilgrids_to_aquacrop() 
+#write_soil_aquacrop("R_package/write_files/", "TEST", soil_data$data, soil_data$CN, soil_data$REW)

@@ -199,7 +199,7 @@ get_metrics <- function(data) {
     data %>% filter(complete.cases(.)) %>%
         summarise(n = n(),
                   r = cor(obs, sim, method = c("pearson")),
-                  k = cor(obs, sim, method = c("kendall")),
+                  tau = cor(obs, sim, method = c("kendall")),
                   RMSE = sqrt(mean((sim - obs)^2, na.rm = T)),
                   NRMSE = RMSE/mean(obs, na.rm = T),
                   MAE = sum(abs(sim - obs)/n),
@@ -285,7 +285,7 @@ daily_to_monthly <- function(wth_data, ...){
 #https://core.ac.uk/download/pdf/42720291.pdf
 #var = c("tmax", "tmin", "rain")
 
-remote_data_correction <- function(obs_data, target_data, var = c("tmax", "tmin")) {
+remote_data_correction <- function(obs_data, target_data, wth_vars = c("tmax", "tmin")) {
   
   # varsW  = colnames(obs_data)
   
@@ -300,7 +300,7 @@ remote_data_correction <- function(obs_data, target_data, var = c("tmax", "tmin"
   monthly_diff <- left_join(obs, sim, by = "month") %>% 
     mutate(tmax = tmax.x - tmax.y,
            tmin = tmin.x - tmin.y,
-           rain = case_when("rain" %in% var ~ rain.x/rain.y,
+           rain = case_when("rain" %in% wth_vars ~ rain.x/rain.y,
                             TRUE ~ 1)) %>%
     dplyr::select(month, tmax, tmin, rain) %>%
     pivot_longer(cols = -c(month), names_to = "var", values_to = "corr")
@@ -358,17 +358,16 @@ cal_metrics_wth <- function(obs_data, sim_data, time = "monthly"){
 }
 
 
-plot_na_wth  <- function(id, data) {
+plot_na_wth  <- function(id, wth_data) {
   
   
-  
-  vis_miss(dplyr::select(data, -date), warn_large_data = F) +
+  vis_miss(dplyr::select(wth_data, -date), warn_large_data = F) +
     #  facet_wrap(id ~.)
     labs(title = id) +
     #       subtitle = paste0(city, " (", dpto, ") "),
     #       caption = "Source: IDEAM") +
-    scale_y_continuous(breaks = seq(0, length(data$date), by = 365*5), 
-                       labels = cut.Date(data$date, breaks = "5 years") %>% 
+    scale_y_continuous(breaks = seq(0, length(wth_data$date), by = 365*5), 
+                       labels = cut.Date(wth_data$date, breaks = "5 years") %>% 
                          unique() %>% year()) +
     coord_flip() +
     theme(axis.text.x = element_text(angle = 0))
