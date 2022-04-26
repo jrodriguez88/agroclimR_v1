@@ -7,7 +7,10 @@
 
 write_exp_oryza <- function(INPUT_data, out_path) {
     
+    remove_unders <- function(var){str_replace_all(var, "_", "")}
+    
     exp_file <- INPUT_data$AGRO_man %>% 
+        mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
         mutate(file = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_") %>% 
                    paste0(out_path, .,".exp")) %>% pull(file) #dplyr::select(ID, file)
     
@@ -22,7 +25,7 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         cat('*--------------------------------------------------------------------*',sep = '\n')  
         cat('* EXPERIMENTAL DATA FILE                                             *',sep = '\n') 
         cat('*                                                                    *',sep = '\n') 
-        cat(paste0('* File name        : ', INPUT_data$AGRO_man$LOC_ID[i], '_', INPUT_data$AGRO_man$CULTIVAR[i], '_', INPUT_data$AGRO_man$PROJECT[i],'_', INPUT_data$AGRO_man$TR_N[i], ".EXP", '                     *'), sep = '\n') 
+        cat(paste0('* File name        : ', str_replace(exp_file, out_path, ""), '                     *'), sep = '\n') 
         cat(paste0('* Crop             : ', INPUT_data$AGRO_man$CULTIVAR[i], '                                       *') ,sep = '\n') 
         cat(paste0('* Year/Season      : ', year(INPUT_data$AGRO_man$PDAT[i]), '                                            *') ,sep = '\n') 
         cat(paste0('* Additional info  : ', 'Create with https://github.com/jrodriguez88', '     *') ,sep = '\n') 
@@ -449,9 +452,9 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         sink()
     }
     
-######    
+    ######    
     
-write_exp <- function(INPUT_data, exp_file, i){
+    write_exp <- function(INPUT_data, exp_file, i){
         
         head_exp_oryza(INPUT_data, exp_file, i)
         runmodes_oryza(INPUT_data, exp_file, i)
@@ -472,10 +475,11 @@ write_exp <- function(INPUT_data, exp_file, i){
         
     }
     
-walk2(exp_file, id, ~write_exp(INPUT_data, .x, .y))
-
-}
+    walk2(exp_file, id, ~write_exp(INPUT_data, .x, .y))
     
+}
+
+
 
 
     

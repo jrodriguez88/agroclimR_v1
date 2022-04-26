@@ -86,7 +86,7 @@ extract_sim_var <- function(sim_data, exp_set, variable) {
 }
 
 ### extract from base data
-extract_obs_var <- function(obs_data, exp_set, variable) {
+extract_obs_var <- function(obs_data, variable) {
     
     # vars select shet names required
     vars <- switch(variable, 
@@ -104,17 +104,27 @@ extract_obs_var <- function(obs_data, exp_set, variable) {
         
     }
     
-    set <- exp_set %>%
-        str_sub(1,-5) %>% enframe(name = NULL, value = "exp_file") %>%
-        separate(exp_file, c("LOC_ID", "CULTIVAR","PROJECT", "TR_N"), sep = "_", remove = F) %>%
-        mutate(ID = paste0(LOC_ID, TR_N, PROJECT))
+#   set <- exp_set %>%
+#       str_sub(1,-5) %>% enframe(name = NULL, value = "exp_file") %>%
+#       separate(exp_file, c("LOC_ID", "CULTIVAR","PROJECT", "TR_N"), sep = "_", remove = F) %>%
+#       mutate(ID = paste0(LOC_ID, TR_N, PROJECT))
+    
+    remove_unders <- function(var){str_replace_all(var, "_", "")}
+    
+    set <- obs_data %>% 
+        map(., ~.[["AGRO_man"]]) %>% bind_rows() %>% 
+        mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
+        mutate(exp_file = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_")) %>% 
+        dplyr::select(-c(LATITUD:TRDAT))
+    
+    
     
     
     obs_data <- obs_data %>%
         map(., ~.[[vars]]) %>%
         bind_rows() %>% 
         dplyr::select(-LOC_ID, -CULTIVAR) %>%
-        nest(-c(ID)) %>% right_join(set, by= "ID") %>% unnest(data) %>%
+        nest(data = -c(ID)) %>% right_join(set, by= "ID") %>% unnest(data) %>%
         select(-c(LOC_ID, CULTIVAR, PROJECT, TR_N)) 
     
     
@@ -146,7 +156,7 @@ extract_obs_var <- function(obs_data, exp_set, variable) {
                      dplyr::select(-ID) %>%
                      gather(var, value, -exp_file) %>%
                      mutate(value = as.Date(value)) %>%
-                     nest(-exp_file) %>% 
+                     nest(data = -exp_file) %>% 
                      mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
                      unnest(phen_dae) %>%
                      mutate(value = if_else(var == "MDAT", value - 7 , value)))
