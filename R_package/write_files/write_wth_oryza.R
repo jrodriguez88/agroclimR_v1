@@ -77,7 +77,7 @@ print_tag <- function(){
       
 cat("*-----------------------------------------------------------", sep = '\n')        
 cat(paste0("*  Station Name: ", id_name), sep = '\n')
-cat(paste0("*  DSSAT Weather file - by https://github.com/jrodriguez88"), sep = '\n') 
+cat(paste0("*  ORYZA Weather file - by https://github.com/jrodriguez88"), sep = '\n') 
 cat(paste0("*  Longitude: ", lon, " -- Latitude: ", lat, " -- Elevation: ", elev, "m"), sep = '\n')
 cat("*-----------------------------------------------------------", sep = '\n') 
 cat(paste0("*  Date: ", min(wth_data$date), " : ", max(wth_data$date)), sep = '\n')
@@ -116,7 +116,7 @@ cat("*  Column    Daily Value
     
     if(isTRUE(multiyear)){
     #DATA=read.table(file, head=T)
-        fname <- paste0(path, "/" , id, stn, ".cli")
+        fname <- paste0(path, "/" , id_name, stn, ".cli")
         sink(file = fname, append = F)
         if(isTRUE(tag)) print_tag()
         cat(set_head)
@@ -126,7 +126,7 @@ cat("*  Column    Daily Value
     } else { 
         data_list <- split(data_to, data_to$year)
         walk(data_list, function(x){
-            fname <- paste(path,"/", id, stn,".", str_sub(unique(x$year), 2), sep = "")
+            fname <- paste(path,"/", id_name, stn,".", str_sub(unique(x$year), 2), sep = "")
             sink(file=fname)
             if(isTRUE(tag)) print_tag()
             cat(set_head)
@@ -152,4 +152,9 @@ cat("*  Column    Daily Value
 #data %>% mutate(
 #    srad = srad_cal(., lat =  3.5, kRs = 0.16)) %>%
 #    write_wth_oryza("R_package/write_files/", "TEST", .,  3.5, -75, 250)
+
+# from nasapower 
+#elev <- get_elevation(lat, lon)
+#data  <- data %>% from_nasa_to_model()
+#write_wth_oryza(path = "R_package/write_files/", "TEST2", data, lat, lon, elev, multiyear = T, tag = T)
 

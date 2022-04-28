@@ -26,7 +26,7 @@
 plot_phen_obs <- function(phen_data){
   
   
-  phen_ <- phen %>% 
+  phen_ <- phen %>% #drop_na() %>%
     mutate(locality = word(exp_file, 1, sep = "_"),
            cultivar = word(exp_file, 2, sep = "_"),
            pat_rem = paste0(locality, "_", cultivar,"_"),
@@ -63,7 +63,7 @@ plot_phen_obs <- function(phen_data){
 plot_lai_obs <- function(lai_data){
   
   
-  lai_ <- lai %>% 
+  lai_ <- lai %>% #drop_na() %>%
     mutate(locality = word(exp_file, 1, sep = "_"),
            cultivar = word(exp_file, 2, sep = "_"),
            pat_rem = paste0(locality, "_", cultivar,"_"),
@@ -75,7 +75,7 @@ plot_lai_obs <- function(lai_data){
     geom_point(aes(color = locality)) +
     geom_errorbar(aes(ymin = value - se, ymax = value + se, color = locality)) +
     #  geom_point(aes(y = value), color = "black") + ylim(0, 10) +
-    theme_bw() + facet_wrap(~exp_file, scales = "free_x") +
+    theme_bw() + facet_wrap(~exp_file, scales = "free_x") + ylim(0, max(lai_$value)+1) +
     theme(
       #        axis.text.x = element_blank(),
       legend.position = "bottom",
@@ -98,7 +98,7 @@ plot_lai_obs <- function(lai_data){
 
 plot_drymatter_obs <- function(dry_matter_data){
   
-  dry_matter_ <- dry_matter_data %>% 
+  dry_matter_ <- dry_matter_data %>% #drop_na() %>%
     mutate(locality = word(exp_file, 1, sep = "_"),
            cultivar = word(exp_file, 2, sep = "_"),
            pat_rem = paste0(locality, "_", cultivar,"_"),
@@ -118,7 +118,7 @@ plot_drymatter_obs <- function(dry_matter_data){
       #        legend.title = element_blank(),
       panel.grid.minor = element_blank(),
       strip.background=element_rect(fill="white", size=1.5, linetype="solid"),
-      strip.text = element_text(face = "bold")) + ylim(0, max(dry_matter$value)+500) +
+      strip.text = element_text(face = "bold")) + ylim(0, max(dry_matter_$value)+1000) +
     labs(title = paste0("Rice shoot dry matter - Cultivar ", dry_matter_$cultivar[[1]]), 
          x = "Date",
          y = "Dry matter (Kg/ha)",
@@ -134,7 +134,7 @@ plot_drymatter_obs <- function(dry_matter_data){
 plot_yield_obs <- function(yield_data){
   
   
-  yield_ <- yield_data %>% 
+  yield_ <- yield_data %>% #drop_na() %>%
     mutate(locality = word(exp_file, 1, sep = "_"),
            cultivar = word(exp_file, 2, sep = "_"),
            pat_rem = paste0(locality, "_", cultivar,"_"),
