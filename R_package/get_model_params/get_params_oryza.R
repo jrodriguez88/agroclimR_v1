@@ -43,12 +43,12 @@ tidy_params_oryza <- function(list_params, method = 1){
           Partition_Parameter == "FSO" & DVSM>1 & Value<0.30   ~ NA_real_,
           Partition_Parameter == "FLV" & DVSM>1 & Value>0.25   ~ NA_real_,
           Partition_Parameter == "FLV" & DVSM<0.75 & Value<0.2 ~ NA_real_,
-          Partition_Parameter == "FLV" & DVSM<0.75 & Value<0.2 ~ NA_real_,
-          Partition_Parameter == "FLV" & DVSM<1 & Value>0.75   ~ NA_real_,
+         # Partition_Parameter == "FLV" & DVSM<0.75 & Value<0.2 ~ NA_real_,
+          Partition_Parameter == "FLV" & DVSM<1 & Value>0.65   ~ NA_real_,
           Partition_Parameter == "FST" & DVSM<0.75 & Value<0.4 ~ NA_real_,
           Partition_Parameter == "FST" & DVSM>1 & Value>0.5    ~ NA_real_,
           Partition_Parameter == "FST" & DVSM<1 & Value>0.80   ~ NA_real_,
-          Value<0 ~ 0,
+          Value< 0 ~ 0,
           Value>1 ~ 1,
           TRUE ~ Value))
     } else {} 

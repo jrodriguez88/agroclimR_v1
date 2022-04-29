@@ -22,13 +22,15 @@ DVR_plot1 <- function(DVR_tb, save_plot = "N") {
   plot <- data %>%
     ggplot(aes(x=DVR, y=Value)) +
     #           geom_boxplot(fill="gray") +
-    geom_jitter(aes(shape=LOC_ID)) +
-    stat_summary(fun.data = mean_sdl, color="red")+
-    labs(x=NULL, title = paste0("Development Rates for ", data$cultivar[[1]]),
-         y = bquote('DVR; ('*~degree*Cd^-1*')'))+
+    geom_jitter(aes(shape=LOC_ID, label = exp_file)) +
+    stat_summary(fun.data = mean_cl_boot, color="red")+
+    labs(x="", title = paste0("Development Rates for ", data$cultivar[[1]]),
+         y = "DVR (oCd-1)", 
+         #         y = bquote('DVR; ('*~degree*Cd^-1*')')),
+         shape = "Locality:") +
     #           facet_grid(.~ DVR, scales="free") +
     theme_bw() + 
-    scale_shape_discrete(name="Locality") 
+#    scale_shape_discrete(name="Locality") 
   #           theme(legend.position = "bottom", legend.title = element_blank()) +
   
   switch(save_plot,
@@ -320,8 +322,12 @@ plot_sla_loess <- function(data_obs, data_sim, span=0.75, nse=4, width=10, heigh
 ## Function to plot Fraction of carbohydrates allocated to stems that is stored as reserves
 FSTR_plot <- function(FSTR_df, save_plot = "N") {
   
-  plot <- FSTR_df %>% filter(FSTR>0) %>%
-    ggplot(aes(LOC_ID, FSTR, label=ID)) +
+  data <- FSTR_df  %>% #drop_na() %>%
+    mutate(LOC_ID = word(exp_file, 1, sep = "_"),
+           cultivar = word(exp_file, 2, sep = "_"))
+  
+  plot <- data %>% filter(FSTR>0) %>% mutate(LOC_ID =  str_sub(exp_file, 1,4)) %>%
+    ggplot(aes(LOC_ID, FSTR, label=exp_file)) +
     geom_jitter(width = 0.1) +
     stat_summary(fun.data = mean_se, color="red") +
     geom_hline(yintercept = mean(FSTR_df$FSTR), color="blue", linetype="twodash") +
@@ -331,13 +337,13 @@ FSTR_plot <- function(FSTR_df, save_plot = "N") {
          x="Locality") +
     theme_bw()
   
-  switch(save_plot,
-         N = NULL, 
-         Y = ggsave(plot, filename = paste0("FSTR for ", data$cultivar[[1]], ".png"), width=7, height=3))
+  #switch(save_plot,
+  #       N = NULL, 
+  #       Y = ggsave(plot, filename = paste0("FSTR for ", cultivar, ".png"), width=7, height=3))
   
   plot
   
-} 
+}
 
 ## Function to plot leaf death coefficient
 DRLV_plot <- function(DRLV_df, llim = 1.1, save_plot = "N") {
