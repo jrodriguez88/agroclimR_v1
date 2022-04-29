@@ -67,7 +67,7 @@ tidy_wth_oryza <- function(wth_data, cal_VP = T){
     
 }
 
-write_wth_oryza <- function(path, id_name, wth_data, lat, lon, elev, stn=1, multiyear = T, tag = F) {
+write_wth_oryza <- function(path, id_name, wth_data, lat, lon, elev, stn=1, multiyear = F, tag = F) {
     
 
 # Evalua colnames

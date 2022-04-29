@@ -1,29 +1,43 @@
-#########################################################
-####      Make ORYZA Experimental File (*.EXP)       ####
-####     By https://github.com/jrodriguez88          ####
-####      ORYZA Rice Crop Model described in:        #### 
-####   http://books.irri.org/9712201716_content.pdf  ####
-#########################################################
+#### Function to make/write Experimental file (*.EXP) for ORYZA model
+# Author: Rodriguez-Espinoza J.
+# Repository: https://github.com/jrodriguez88/
+# 2021
+#      ORYZA Rice Crop Model described in:       
+#   http://books.irri.org/9712201716_content.pdf  
+####
+
+
+# INPUT_data - use excel template 
 
 write_exp_oryza <- function(INPUT_data, out_path) {
     
+    #funcion para remover separadores "_" de las variables a analizar
     remove_unders <- function(var){str_replace_all(var, "_", "")}
     
+    
+    #tabla de experimentos crea nombre de archivos experimentales == ID
     exp_data <- INPUT_data$AGRO_man %>% 
         mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
         mutate(PDAT = as.Date(PDAT), exp_file  = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_") %>% 
                    paste0(out_path, .,".exp"))
     
     
+    # Extrae datos por componente del archivo experiental
+    
+    # Datos  de fertilizacion
     FERT <- nest(INPUT_data$FERT_obs, FERT_obs = - ID) 
     
+    # Datos de Fenologia
     PHEN <- nest(INPUT_data$PHEN_obs, PHEN_obs = - ID)
     
+    # Datos de crecimiento y desarrollo
     PLANT <- nest(INPUT_data$PLANT_gro, PLANT_gro = - ID)
     
+    # Datos de Rendimiento
     YIELD <-  nest(INPUT_data$YIELD_obs, YIELD_obs = - ID)
     
-    to_write <- purrr::reduce(list(exp_data, FERT, PHEN, PLANT, YIELD), left_join, by = "ID")
+    
+    to_write_exp <- purrr::reduce(list(exp_data, FERT, PHEN, PLANT, YIELD), left_join, by = "ID")
     
     
     
@@ -464,8 +478,9 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         cat('\n')
         sink()
     }
-    
-    ######    
+
+        
+    ###### Write EXP file    
     
     write_exp <- function(exp_file, LOC_ID, CULTIVAR, PDAT, ESTAB, SBDUR, NPLDS, CROP_SYS, TRDAT, FERT_obs, PHEN_obs, PLANT_gro){
         
@@ -488,7 +503,7 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         
     }
     
-    dplyr::select(to_write, exp_file, LOC_ID, CULTIVAR, PDAT, ESTAB, SBDUR, NPLDS, CROP_SYS, TRDAT, FERT_obs, PHEN_obs, PLANT_gro)  %>%
+    dplyr::select(to_write_exp, exp_file, LOC_ID, CULTIVAR, PDAT, ESTAB, SBDUR, NPLDS, CROP_SYS, TRDAT, FERT_obs, PHEN_obs, PLANT_gro)  %>%
         mutate(file = pmap(., write_exp))
     
 }
