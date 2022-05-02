@@ -73,7 +73,7 @@ DVR_tb <- list_params$DVR_df %>%
  return(list(DVR_tb = DVR_tb, PF_tb = PF_tb, SLA_tb = SLA_df))
 
 }
-
+  
 #tidy_params_oryza(params)
 
 
@@ -135,27 +135,6 @@ FSTR_cal <- function(FSTR_df, default = 0.2){
 }
 
 
-## Function to plot Fraction of carbohydrates allocated to stems that is stored as reserves
-FSTR_plot <- function(FSTR_df, save_plot = "N") {
-  
-  plot <- FSTR_df %>% filter(FSTR>0) %>% mutate(LOC_ID =  str_sub(exp_file, 1,4)) %>%
-    ggplot(aes(LOC_ID, FSTR, label=exp_file)) +
-    geom_jitter(width = 0.1) +
-    stat_summary(fun.data = mean_se, color="red") +
-    geom_hline(yintercept = mean(FSTR_df$FSTR), color="blue", linetype="twodash") +
-    annotate("text", x = 0.65, y = mean(FSTR_df$FSTR), 
-             label =  paste0("mean =\n", round(mean(FSTR_df$FSTR),3))) + 
-    labs(title = paste0("Fraction of carbohydrates allocated to stems (stored as reserves) - ", cultivar),
-         x="Locality") +
-    theme_bw()
-  
-  switch(save_plot,
-         N = NULL, 
-         Y = ggsave(plot, filename = paste0("FSTR for ", cultivar, ".png"), width=7, height=3))
-  
-  plot
-  
-}
 
 
 #WGRMX  = 0.0000249 ! Maximum individual grain weight (kg grain-1)

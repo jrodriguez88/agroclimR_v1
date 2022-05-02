@@ -75,7 +75,7 @@ plot_lai_obs <- function(lai_data){
     geom_point(aes(color = locality)) +
     geom_errorbar(aes(ymin = value - se, ymax = value + se, color = locality)) +
     #  geom_point(aes(y = value), color = "black") + ylim(0, 10) +
-    theme_bw() + facet_wrap(~exp_file, scales = "free_x") + ylim(0, max(lai_$value)+1) +
+    theme_bw() + facet_wrap(~exp_file, scales = "free_x") +
     theme(
       #        axis.text.x = element_blank(),
       legend.position = "bottom",
@@ -86,7 +86,8 @@ plot_lai_obs <- function(lai_data){
     labs(title = paste0("Leaf Area Index - Cultivar ", lai_$cultivar[[1]]), 
          x = "Date",
          y = "LAI (m²/m²)",
-         color = "Site: ")
+         color = "Site: ") +
+    ylim(0, 10)
   
   return(plot_lai)
   
