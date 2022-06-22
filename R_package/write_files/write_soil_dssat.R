@@ -4,7 +4,7 @@
 # 2021
 
 # Info about soil parameters
-#https://dssat.net/wp-content/uploads/2012/05/Romero-2012-Reanalysis-of-a-global-soil-database-for-crop-and-environmental-modeling.pdf
+# https://dssat.net/wp-content/uploads/2012/05/Romero-2012-Reanalysis-of-a-global-soil-database-for-crop-and-environmental-modeling.pdf
 
 
 ###Standard table in soil file structure

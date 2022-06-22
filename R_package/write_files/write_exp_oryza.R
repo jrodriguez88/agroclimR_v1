@@ -8,8 +8,13 @@
 
 
 # INPUT_data - use excel template 
+# out_path : output path folder
+# ET_mod : is method for evapotranspiration calculation - 
+    # 'PENMAN'           ! Penman-based (Van Kraalingen& Stol,1996)
+    # 'PRIESTLY TAYLOR'  ! Priestly-Taylor (")
+    # 'MAKKINK'          ! Makkink (Van Kraalingen&Stol, 1996)
 
-write_exp_oryza <- function(INPUT_data, out_path) {
+write_exp_oryza <- function(INPUT_data, out_path, ET_mod = "PRIESTLY TAYLOR") {
     
     #funcion para remover separadores "_" de las variables a analizar
     remove_unders <- function(var){str_replace_all(var, "_", "")}
@@ -19,7 +24,8 @@ write_exp_oryza <- function(INPUT_data, out_path) {
     exp_data <- INPUT_data$AGRO_man %>% 
         mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
         mutate(PDAT = as.Date(PDAT), exp_file  = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_") %>% 
-                   paste0(out_path, .,".exp"))
+                   paste0(out_path, .,".exp")) 
+    
     
     
     # Extrae datos por componente del archivo experiental
@@ -35,6 +41,14 @@ write_exp_oryza <- function(INPUT_data, out_path) {
     
     # Datos de Rendimiento
     YIELD <-  nest(INPUT_data$YIELD_obs, YIELD_obs = - ID)
+    
+    if(any(colnames(exp_data) == "SBDUR")){} else {
+        exp_data <- mutate(exp_data, SBDUR  = NA)
+    } 
+    
+    if(any(colnames(exp_data) == "TRDAT")){} else {
+        exp_data <- mutate(exp_data, TRDAT  = NA)
+    }
     
     
     to_write_exp <- purrr::reduce(list(exp_data, FERT, PHEN, PLANT, YIELD), left_join, by = "ID")
@@ -72,7 +86,7 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         cat(paste0("PRODENV = ", "'WATER BALANCE'"),sep = '\n')
         cat(paste0("WATBAL = ", "'PADDY'"), sep = '\n')
         cat(paste0("NITROENV = ", "'NITROGEN BALANCE'"),sep = '\n')
-        cat(paste0("ETMOD = ", "'PRIESTLY TAYLOR'"),sep = '\n')
+        cat(paste0("ETMOD = ", "'", ET_mod, "'"), sep = '\n')
         cat('\n')
         sink()
     }
@@ -148,6 +162,7 @@ write_exp_oryza <- function(INPUT_data, out_path) {
     ##############################
     ### 4. Establishment data  ###
     ##############################
+    
     
     estab_oryza <- function(exp_file, ESTAB, SBDUR, PHEN_obs){
         sink(file = exp_file, append = T)
@@ -478,8 +493,8 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         cat('\n')
         sink()
     }
-
-        
+    
+    
     ###### Write EXP file    
     
     write_exp <- function(exp_file, LOC_ID, CULTIVAR, PDAT, ESTAB, SBDUR, NPLDS, CROP_SYS, TRDAT, FERT_obs, PHEN_obs, PLANT_gro){
@@ -507,6 +522,7 @@ write_exp_oryza <- function(INPUT_data, out_path) {
         mutate(file = pmap(., write_exp))
     
 }
+
 
     
     

@@ -5,100 +5,59 @@
 
 #
 #list_params =  output of "extract_drates_param" function
-tidy_params_oryza <- function(list_params, method = 1){
+
+
+
+
+
+#library(infer)
+#bootstrap_params <- function(param_data, reps = 5000){
+#  
+#  # Generate bootstrap distribution of medians
+#  boots <- param_data %>%
+#    # Specify the variable of interest
+#    specify(response = !!as.name(param)) %>%  
+#    # Generate 15000 bootstrap samples
+#    generate(reps = reps, type = "bootstrap") %>% 
+#    # Calculate the median of each bootstrap sample
+#    calculate(stat = "mean") 
+#  
+#  
+#  boots %>% 
+#    summarise(Base = mean(stat),
+#              Min  = quantile(stat, 0,025),
+#              Max  = quantile(stat, 0.975))
+#  
+#  
+#  
+#}
+
+## Function apply bootstrap method over crop parameters -- get mean, max or min value 
+# param_data = parameter crop data ,
+# reps  = Number of repetitions - boots
+#ci = cofidence interval 
+#stat =statistic value - mena, max o  min 
+bootstrap_param <- function(param_data, reps = 2000, ci = 0.95, stat = "mean"){
   
-  if(method == 1){
-    
-    
-    ### Method 1. According to ORYZA_V3_User_Manual_2014
-    ### Apply filters by DVSM 
-    PF_tb <- list_params$BPART_df %>% 
-      pivot_longer(cols = FLV:FSO, names_to = "Partition_Parameter", values_to = "Value") %>%
-      mutate(
-        #        Growth_phase = case_when(
-        #            DVSM<=0.65 ~ "Vegetative",
-        #            DVSM>0.65&DVSM<=1 ~"Reproductive",
-        #            DVSM>1 ~"Ripening"),
-        Partition_Parameter = factor(Partition_Parameter, c("FLV", "FST", "FSO")),
-        Value = case_when(
-          DVSM>1.1 &  Partition_Parameter == "FLV" ~ 0,
-          DVSM>1.1 &  Partition_Parameter == "FST" ~ 0,
-          DVSM>1.1 &  Partition_Parameter == "FSO" ~ 1,
-          Value<0 ~ 0,
-          Value>1 ~ 1,
-          TRUE ~ Value))
-    
-    
-  } else if (method == 2){
-    
-    ### Method 2. Grafical analysis, logical-physiological filters
-    PF_tb <- list_params$BPART_df %>%
-      filter(FLV>=-0.2, FLV<=1.2,
-             FST>=-0.2, FST<=1.2,
-             FST>=-0.2, FSO<=1.2) %>%
-      pivot_longer(cols = FLV:FSO, names_to = "Partition_Parameter", values_to = "Value") %>%
-      mutate(
-        Partition_Parameter = factor(Partition_Parameter, c("FLV", "FST", "FSO")),
-        Value = case_when(
-          Partition_Parameter == "FSO" & DVSM>1 & Value<0.30   ~ NA_real_,
-          Partition_Parameter == "FLV" & DVSM>1 & Value>0.25   ~ NA_real_,
-          Partition_Parameter == "FLV" & DVSM<0.75 & Value<0.2 ~ NA_real_,
-         # Partition_Parameter == "FLV" & DVSM<0.75 & Value<0.2 ~ NA_real_,
-          Partition_Parameter == "FLV" & DVSM<1 & Value>0.65   ~ NA_real_,
-          Partition_Parameter == "FST" & DVSM<0.75 & Value<0.4 ~ NA_real_,
-          Partition_Parameter == "FST" & DVSM>1 & Value>0.5    ~ NA_real_,
-          Partition_Parameter == "FST" & DVSM<1 & Value>0.80   ~ NA_real_,
-          Value< 0 ~ 0,
-          Value>1 ~ 1,
-          TRUE ~ Value))
-    } else {} 
+  require(Hmisc)
   
+  stat <- switch (stat,
+                  "mean" = 1,
+                  "min" = 2,
+                  "max" = 3
+  )
   
-##### tidy Specific LEaf Area
-SLA_df <- list_params$LAI_df %>%
-    select(exp_file, DVS, LAI) %>% na.omit() %>%
-    left_join(list_params$BMASS_df) %>%
-    mutate(SLA = LAI/WLVG, Value = SLA) %>%
-    filter(SLA < 0.0045) %>%
-    dplyr::rename(DVSM=DVS)
-
-
-# DVR_plots
-DVR_tb <- list_params$DVR_df %>%
-  pivot_longer(cols = -exp_file, names_to = "DVR", values_to = "Value") %>%
-  filter(Value<0.0046) %>% #DVR!= "DVRI", 
-  mutate(DVR=factor(DVR, c("DVRJ", "DVRI", "DVRP", "DVRR"))) 
-
-
- return(list(DVR_tb = DVR_tb, PF_tb = PF_tb, SLA_tb = SLA_df))
-
-}
-  
-#tidy_params_oryza(params)
-
-
-
-
-bootstrap_params <- function(param_data, param, reps = 1000){
-  
-  # Generate bootstrap distribution of medians
-  boots <- data %>%
-    # Specify the variable of interest
-    specify(response = get(param)) %>%  
-    # Generate 15000 bootstrap samples
-    generate(reps = reps, type = "bootstrap") %>% 
-    # Calculate the median of each bootstrap sample
-    calculate(stat = "mean") 
-  
+  smean.cl.boot(param_data, conf.int=ci, B=reps, na.rm=TRUE, reps=T)[stat]
   
   
 }
 
 
 ### Specifif Leaf Area - Maximun 
-# SLA_df 
-SLA_max <- function(SLA_df, fr=0.50) {
-  SLA_df %>%
+### SLA_df
+SLA_max <- function(SLA_df, default = 0.0045, fr=0.50) {
+  
+  sla_max <- SLA_df %>%
     filter(DVSM<fr) %>%
     lm(SLA~DVSM, data = .) %>%
     summary() %>%
@@ -106,6 +65,24 @@ SLA_max <- function(SLA_df, fr=0.50) {
     mutate(par=Estimate+1.96*`Std. Error`) %>%
     .$par %>%
     .[1]
+  
+  
+  if (sla_max < 0.0039) {
+    
+    message(paste("SLA_max calculated:", sla_max, "- is a low value.", "- Use default"))
+    return(default)
+    
+  } else if (sla_max > 0.0051){
+    
+    message(paste("SLA_max calculated:", sla_max, "- is a high value.", "- Use default"))
+    return(default)
+    
+  } else {
+    
+    message(paste("SLA_max calculated:", sla_max, "- is a normal value.", "- Use data"))
+    return(sla_max)
+    
+  }
 }
 
 
@@ -135,14 +112,12 @@ FSTR_cal <- function(FSTR_df, default = 0.2){
 }
 
 
-
-
 #WGRMX  = 0.0000249 ! Maximum individual grain weight (kg grain-1)
-WGRMX_cal <- function(INPUT_data, default = 0.000025){
+WGRMX_cal <- function(yield_params, default = 0.000025){
   
-  data <- INPUT_data %>% map("YIELD_obs") %>% bind_rows()
+  data <- yield_params
   
-  wgrmx <- mean_boot(data$GW1000)[[1]] %>% round(3)
+  wgrmx <- bootstrap_param(data$GW1000, stat = "max")[[1]] %>% round(3)
   
   #(kg grain-1)
   WGRMX <-  wgrmx/(1000000)
@@ -225,7 +200,9 @@ SPGF_extract <- function(INPUT_data, max_diff = 5) {
 
 
 ## Function to calculate SPGF by lm 
-SPGF_cal <- function(SPGF_df, out="", default = 45000) {
+
+#SPGF   = 64900.    ! Spikelet growth factor (no kg-1) --- Default value in EXP file- alh to colombian cultivars
+SPGF_cal <- function(SPGF_df, out="", default = 50000) {
   
   
   SPGF_df <- SPGF_df %>% filter(ID != out)

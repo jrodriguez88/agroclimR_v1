@@ -193,9 +193,16 @@ soilgrids_to_dssat <- function(soilgrids_data) {
 }
 
 
-soilgrids_to_oryza <- function(soilgrids_data) {
+# sn = c(3,1,1) =>
+# assumption 1 =>  Soil Mineral Nitrogen = 3% of Total Nitrogen
+# assumption 2 =>  Soil Mineral Nitrogen = 50% nitrate-N + 50% ammonium-N = proportion = 1:1 = c(1,1)
+soilgrids_to_oryza <- function(soilgrids_data, sn = c(3,1,1)) {
     
     #    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
+    
+    # sn = c(3,1,1) =>
+    # assumption 1 =>  Soil Mineral Nitrogen = 3% of Total Nitrogen
+    # assumption 2 =>  Soil Mineral Nitrogen = 50% nitrate-N + 50% ammonium-N = proportion = 1:1 = c(1,1)
     
     
     ## transform data to aquacrop dssat format
@@ -204,15 +211,16 @@ soilgrids_to_oryza <- function(soilgrids_data) {
                                      #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
                                      pivot_wider(names_from = var, values_from = values.mean) %>% 
                                      mutate_at(.vars = vars(bdod, cfvo, clay, sand, silt, phh2o, cec), ~.x/10) %>%
-                                     mutate(DEPTH  = c(15, diff(abs(range.bottom_depth))),
+                                     mutate(DEPTH  = c(5, diff(abs(range.bottom_depth))),
                                             SBDM = bdod/10,
                                             SLOC = soc/100,
-                                            SLNI = nitrogen/1000,
+                                            SLNI = nitrogen*10),
                                             OM = (100/58)*SLOC, # Organic matter (%) = Total organic carbon (%) x 1.72 https://www.soilquality.org.au/factsheets/organic-carbon
                                             WCFC = WCFC_Saxton(sand, clay, OM)/100,
                                             WCST = WCST_Saxton(SBDM)/100,
                                             WCWP = WCWP_Saxton(sand, clay, OM)/100,
-                                            SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
+                                            SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), 
+                                                            ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
                                             STC = get_STC(sand, clay)) %>% 
                                      rename(sand = SAND, CLAY = clay, SLHW = phh2o, SILT = silt ) %>% 
                                      dplyr::select(-c(label:bdod, nitrogen, soc, sand)))

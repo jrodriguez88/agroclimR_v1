@@ -13,9 +13,72 @@
 
 ### Function to join oryza params into list
 
-# 'data' is a tibble 
+tidy_crop_oryza <- function(raw_params, tidy_params, yield_params, BPF_tb, SLA_tb, SPGF_tb){
+  
+  DVR_data <- raw_params$DVR_df
+  BPF_data <- tidy_params$BPF_tb 
+  SLA_data <- tidy_params$SLA_tb
+  yield_data <- yield_params
+  
+  
+  paste_crp <- function(BPF_tb, param, metric){
+    
+    BPF_tb[[metric]] %>%
+      spread(Partition_Parameter, Value) %>%
+      select(DVS, all_of(param))
+    
+  }
+  
+  data <- list(
+    
+    
+    # 1. Phenological development parameters  
+    DVRJ = bootstrap_param(DVR_data$DVRJ),
+    DVRI = bootstrap_param(DVR_data$DVRI),
+    DVRP = bootstrap_param(DVR_data$DVRP),
+    DVRR = bootstrap_param(DVR_data$DVRR),
+    
+    # 2. Leaf and stem growth parameters
+    RGRLMX = 0.0085, 
+    RGRLMN = 0.0040, 
+    
+    SLAMAX = SLA_max(SLA_data),
+    SLATB = SLA_tb$mean,
+    
+    # 6. Growth parameters
+    FSTR = bootstrap_param(raw_params$FSTR_df$FSTR),
+    SPGF = SPGF_cal(SPGF_tb),
+    WGRMX = WGRMX_cal(yield_params), 
+    FSHTB = tibble(DVS = c(0,0.43,1,2.5),
+                   FSH = c(0.5,0.75,1,1)),
+    FLVTB = paste_crp(BPF_tb, "FLV", "mean"),
+    FSTTB = paste_crp(BPF_tb, "FST", "mean"),
+    FSOTB = paste_crp(BPF_tb, "FSO", "mean"),
+    DRLVT = tibble(DVS = c(0, 0.6, 1, 1.6, 2.1, 2.5),
+                   DRLV = c(0, 0, 0.015, 0.025, 0.05, 0.05)),
+    # 8. Root parameters
+    GZRT   = 0.01,
+    ZRTMCW = 0.25,
+    ZRTMCD = 0.45,
+    
+    # 9. Temperature and drought stress parameters
+    COLDREP = 20., 
+    CTSTER = 36.5, 
+    ULLE = 1.45, 
+    LLLE = 1404.,   
+    FSWTD = 0.40
+  )
+  
+  return(data)    
+  
+}
 
-write_crop_oryza <- function(cultivar, data, SWISLA='TABLE') {
+
+#crop_params_oryza <- tidy_crop_oryza(raw_params, tidy_params, yield_params, BPF_tb, SLA_tb, SPGF_tb)
+
+
+
+write_crop_oryza <- function(path, cultivar, crop_params_oryza, SWISLA = 'TABLE') { 
   
   crp_tb <- function(tb, sig=5) {
     tb1 <-  cbind(
@@ -29,14 +92,15 @@ write_crop_oryza <- function(cultivar, data, SWISLA='TABLE') {
   
   sink(file=paste0(path,'/', cultivar, ".crp"), append = F)
   
-  # crp_tb function to write CRP-tables in ORYZA model format    
+  # crp_tb function to write CRP-tables in ORYZA model format 
+  
   
   
   cat("**********************************************************************", sep = '\n')         
   cat("* Crop data file for ORYZA rice growth model *", sep = '\n')         
   cat(paste0("* Variety   : ", cultivar), sep = '\n')      
   cat(paste0("* File name : ", cultivar, ".CRP"), sep = '\n')       
-  cat(paste0("* 'Create with https://github.com/jrodriguez88/ORYZA_Model_RTOOLS' *"), sep = '\n') 
+  cat(paste0("* 'Create with https://github.com/jrodriguez88/agroclimR/' *"), sep = '\n') 
   cat("**********************************************************************")
   cat('\n')
   cat('\n')
@@ -48,10 +112,10 @@ write_crop_oryza <- function(cultivar, data, SWISLA='TABLE') {
   cat("TBLV   = 8. ", sep = '\n')        
   cat("TMD    = 42.", sep = '\n')          
   cat("TOD    = 30.", sep = '\n')          
-  cat(paste0("DVRJ = ", data$DVRJ), sep = '\n')
-  cat(paste0("DVRI = ", data$DVRI), sep = '\n')
-  cat(paste0("DVRP = ", data$DVRP), sep = '\n')
-  cat(paste0("DVRR = ", data$DVRR), sep = '\n')
+  cat(paste0("DVRJ = ", crop_params_oryza$DVRJ), sep = '\n')
+  cat(paste0("DVRI = ", crop_params_oryza$DVRI), sep = '\n')
+  cat(paste0("DVRP = ", crop_params_oryza$DVRP), sep = '\n')
+  cat(paste0("DVRR = ", crop_params_oryza$DVRR), sep = '\n')
   cat("MOPP   = 11.50", sep = '\n')  
   cat("PPSE   = 0.0  ", sep = '\n')   
   cat("SHCKD  = 0.4  ", sep = '\n')  
@@ -61,8 +125,8 @@ write_crop_oryza <- function(cultivar, data, SWISLA='TABLE') {
 * 2. Leaf and stem growth parameters                                          
 *---------------------------------------------------------------------")
   cat('\n')
-  cat("RGRLMX = 0.0085", sep = '\n')
-  cat("RGRLMN = 0.0040", sep = '\n')
+  cat(paste0("RGRLMX =", crop_params_oryza$RGRLMX), sep = '\n')
+  cat(paste0("RGRLMN =", crop_params_oryza$RGRLMN),  sep = '\n')
   cat("SHCKL  = 0.25  ", sep = '\n')
   
   cat("SHADET = 0.90", sep = '\n') 
@@ -75,14 +139,16 @@ write_crop_oryza <- function(cultivar, data, SWISLA='TABLE') {
   cat("ASLA = 0.0024                                 
 BSLA = 0.0025                                 
 CSLA = -4.5                                   
-DSLA = 0.14                                   
-SLAMAX = 0.0045")
+DSLA = 0.14", sep = '\n') 
+  
+  cat(paste0("SLAMAX = ",  crop_params_oryza$SLAMAX))
   
   cat('\n')
   cat('\n')
-  cat("* If SWISLA='TABLE', supply table of specific leaf area (ha kg-1; Y value) *
-SLATB = ", sep = '\n')
-  crp_tb(crp_params$SLATB[[1]])
+  cat("* If SWISLA='TABLE', supply table of specific leaf area (ha kg-1; Y value)*")
+  cat('\n')
+  cat("SLATB = ", sep = '\n')
+  crp_tb(crop_params_oryza$SLATB)
   cat('\n')
   #
   #        0.00, 0.0045,"                                                         
@@ -192,40 +258,40 @@ LRSTR  = 0.947  ! Fraction of allocated stem reserves that is
 * 6. Growth parameters                                                        
 *---------------------------------------------------------------------")
   cat('\n')
-  cat(paste0("FSTR  = ", round(data$FSTR, 3)))
+  cat(paste0("FSTR  = ", round(crop_params_oryza$FSTR, 3)))
   cat('\n')
   
   cat("TCLSTR = 10.       ! Time coefficient for loss of stem reserves (1 d-1)", sep='\n')
-  cat(paste0("SPGF   = ", sprintf("%.1f", data$SPGF )))
+  cat(paste0("SPGF   = ", sprintf("%.1f", crop_params_oryza$SPGF )))
   cat('\n')
-  cat(paste0("WGRMX  = ", sprintf("%.7f", data$WGRMX)), sep = '\n')                                                                              
+  cat(paste0("WGRMX  = ", sprintf("%.7f", crop_params_oryza$WGRMX)), sep = '\n')                                                                              
   cat('\n')
   cat("**************** Partitioning tables ****************", sep = '\n')                                                         
   cat("* Table of fraction total dry matter partitioned to the shoot (-; Y-value)    
 * as a function of development stage (-; X value):                            
 FSHTB  = ")  
   cat('\n')
-  crp_tb(crp_params$FSHTB[[1]])
+  crp_tb(crop_params_oryza$FSHTB)
   cat('\n')                                                                           
   cat("* Table of fraction shoot dry matter partitioned to the leaves *                            
 FLVTB  = ")
   cat('\n')
-  crp_tb(crp_params$FLVTB[[1]])
+  crp_tb(crop_params_oryza$FLVTB)
   cat('\n')                                                                           
   cat("* Table of fraction shoot dry matter partitioned to the stems *
 FSTTB  = ", sep = '\n')
-  crp_tb(crp_params$FSTTB[[1]])
+  crp_tb(crop_params_oryza$FSTTB)
   cat('\n')                                                                            
   cat("* Table of fraction shoot dry matter partitioned to the panicles *
 FSOTB  = ")
   cat('\n')
-  crp_tb(crp_params$FSOTB[[1]])
+  crp_tb(crop_params_oryza$FSOTB)
   cat('\n') 
   cat('\n')
   cat("* Table of leaf death coefficient *
 DRLVT  = ")
   cat('\n')
-  crp_tb(crp_params$DRLVT[[1]])
+  crp_tb(crop_params_oryza$DRLVT)
   
   
   cat('\n')                                                        
@@ -244,9 +310,9 @@ FCSTR  = 0.444")
 * 8. Root parameters                                                          
 *---------------------------------------------------------------------")
   cat('\n')  
-  cat(paste0("GZRT   = ", data$GZRT), sep='\n')         
-  cat(paste0("ZRTMCW = ", data$GZRT), sep='\n')        
-  cat(paste0("ZRTMCD = ", data$GZRT), sep='\n')         
+  cat(paste0("GZRT   = ", crop_params_oryza$GZRT), sep='\n')         
+  cat(paste0("ZRTMCW = ", crop_params_oryza$ZRTMCW), sep='\n')        
+  cat(paste0("ZRTMCD = ", crop_params_oryza$ZRTMCD), sep='\n')         
   cat('\n')                                                                             
   cat("*ADDITIONAL INFORMATION since JUNE 2009                                       
 *SROOTL = 90.0 
@@ -265,9 +331,9 @@ SODT   = 0.9")
   cat("COLDMIN = 12.    ! Lower air temperature threshold for growth (oC)            
 COLDEAD = 3.     ! Consecutive number of days below COLDMIN that crop dies (-)")
   cat('\n') 
-  cat(paste0("COLDREP = ",  sprintf("%.1f", data$COLDREP)))
+  cat(paste0("COLDREP = ",  sprintf("%.1f", crop_params_oryza$COLDREP)))
   cat('\n') 
-  cat(paste0("CTSTER = ", sprintf("%.1f", data$CTSTER)))
+  cat(paste0("CTSTER = ", sprintf("%.1f", crop_params_oryza$CTSTER)))
   cat('\n')
   cat('\n') 
   cat("* Upper and lower limits for drought stress effects                           
@@ -276,9 +342,9 @@ LLLS =  794.33    ! Lower limit leaf rolling (kPa)
 ULDL =  630.95    ! Upper limit death of leaves (kPa)                         
 LLDL = 1584.89    ! Lower limit death of leaves (kPa)")
   cat('\n') 
-  cat(paste0("ULLE = ", sprintf("%.2f",  data$ULLE)))    
+  cat(paste0("ULLE = ", sprintf("%.2f",  crop_params_oryza$ULLE)))    
   cat('\n') 
-  cat(paste0("LLLE = ", sprintf("%.2f",  data$LLLE)))                         
+  cat(paste0("LLLE = ", sprintf("%.2f",  crop_params_oryza$LLLE)))                         
   cat('\n') 
   cat('\n')
   cat(
@@ -299,7 +365,7 @@ SWIRTRF = 0.020597
 * The upper limit factor while transpiration declines which is the ratio of 
 * remaining available water to total water supply capability")
   cat('\n') 
-  cat(paste0("FSWTD = ", data$FSWTD))
+  cat(paste0("FSWTD = ", crop_params_oryza$FSWTD))
   cat('\n') 
   cat("
 *---------------------------------------------------------------------
@@ -354,4 +420,4 @@ NSLLVT = 0., 1.0,
   
   sink()
   
-}
+} 

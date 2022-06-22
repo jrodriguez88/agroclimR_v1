@@ -5,7 +5,7 @@
 
 
 # Group of functions to connect probabilistic seasonal forecast with Aquacrop model,  using  Aquacrop-R
-
+#My goal in developing these scripts was to expand the use and adoption of crop simulation models through open access tools.
 
 
 #blind fucntion to load requeriments

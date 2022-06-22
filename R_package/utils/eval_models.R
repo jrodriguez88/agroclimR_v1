@@ -22,7 +22,7 @@ get_metrics <- function(data) {
     
 }
 
-## extract_sim_var function to extract simulatio data by variable (phen, dry_matter, yield, lai)
+## extract_sim_var function to extract simulation data by variable (phen, dry_matter, yield, lai)
 extract_sim_var <- function(sim_data, exp_set, variable) {
     
     vars <- switch(variable, 
@@ -87,84 +87,85 @@ extract_sim_var <- function(sim_data, exp_set, variable) {
 
 ### extract from base data
 extract_obs_var <- function(obs_data, variable) {
-    
-    # vars select shet names required
-    vars <- switch(variable, 
-                   dry_matter = "PLANT_gro", 
-                   lai = "PLANT_gro",
-                   yield = "YIELD_obs", 
-                   phen = "PHEN_obs")
-    
-    date_to_dae <- function(data) {
         
-        edate <- data %>% filter(var == "EDAT") %>% pull(value)
+        # vars select shet names required
+        vars <- switch(variable, 
+                       dry_matter = "PLANT_gro", 
+                       lai = "PLANT_gro",
+                       yield = "YIELD_obs", 
+                       phen = "PHEN_obs")
         
-        data %>% mutate(value = as.numeric(value - edate)) %>%
-            dplyr::filter(var != "PDAT", var != "EDAT")
+        date_to_dae <- function(data) {
+            
+            edate <- data %>% filter(var == "EDAT") %>% pull(value)
+            
+            data %>% mutate(value = as.numeric(value - edate)) %>%
+                dplyr::filter(var != "PDAT", var != "EDAT")
+            
+        }
         
-    }
+    #   set <- exp_set %>%
+    #       str_sub(1,-5) %>% enframe(name = NULL, value = "exp_file") %>%
+    #       separate(exp_file, c("LOC_ID", "CULTIVAR","PROJECT", "TR_N"), sep = "_", remove = F) %>%
+    #       mutate(ID = paste0(LOC_ID, TR_N, PROJECT))
+        
+        remove_unders <- function(var){str_replace_all(var, "_", "")}
+        
+        set <- obs_data %>% 
+            map(., ~.[["AGRO_man"]]) %>% bind_rows() %>% 
+            mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
+            mutate(exp_file = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_")) %>% 
+            dplyr::select(c(ID,	exp_file, LOC_ID,	PROJECT,	CULTIVAR,	TR_N))
     
-#   set <- exp_set %>%
-#       str_sub(1,-5) %>% enframe(name = NULL, value = "exp_file") %>%
-#       separate(exp_file, c("LOC_ID", "CULTIVAR","PROJECT", "TR_N"), sep = "_", remove = F) %>%
-#       mutate(ID = paste0(LOC_ID, TR_N, PROJECT))
-    
-    remove_unders <- function(var){str_replace_all(var, "_", "")}
-    
-    set <- obs_data %>% 
-        map(., ~.[["AGRO_man"]]) %>% bind_rows() %>% 
-        mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
-        mutate(exp_file = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_")) %>% 
-        dplyr::select(-c(LATITUD:TRDAT))
-    
-    
-    
-    
-    obs_data <- obs_data %>%
-        map(., ~.[[vars]]) %>%
-        bind_rows() %>% 
-        dplyr::select(-LOC_ID, -CULTIVAR) %>%
-        nest(data = -c(ID)) %>% right_join(set, by= "ID") %>% unnest(data) %>%
-        select(-c(LOC_ID, CULTIVAR, PROJECT, TR_N)) 
-    
-    
-    op <- switch(variable, 
-                 dry_matter = obs_data %>%
-                     mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>%
-                     rename(date = SAMPLING_DATE) %>%
-                     select(ID:WAGT_SE, exp_file, -contains("LAI")) %>% 
-                     gather(var, value, -c(ID, exp_file, date)) %>%
-                     separate(var, c("var", "metric"), sep = "_") %>%
-                     spread(metric, value) %>% 
-                     rename(value = OBS, se = SE) %>% 
-                     dplyr::select(exp_file, date, var, value, se), 
-                 lai = obs_data %>%
-                     mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>% 
-                     rename(date=SAMPLING_DATE) %>%
-                     select(exp_file, date, contains("LAI")) %>% 
-                     mutate(var = "LAI") %>%
-                     rename(value=LAI_OBS, se=LAI_SE) %>%
-                     dplyr::select(exp_file, date, var, value, se),
-                 yield = obs_data %>%
-                     dplyr::select(exp_file, YIELD_AVG, YIELD_MIN, YIELD_MAX) %>%
-                     rename(value = YIELD_AVG, ymin = YIELD_MIN, ymax = YIELD_MAX) %>%
-                     mutate(var = "YIELD", diff_min = value - ymin,
-                            diff_max = ymax - value,
-                            se = (diff_max+diff_min)/2) %>%
-                     dplyr::select(exp_file, var, value, se),
-                 phen = obs_data %>% 
-                     dplyr::select(-ID) %>%
-                     gather(var, value, -exp_file) %>%
-                     mutate(value = as.Date(value)) %>%
-                     nest(data = -exp_file) %>% 
-                     mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
-                     unnest(phen_dae) %>%
-                     mutate(value = if_else(var == "MDAT", value - 7 , value)))
-    
-    
-    return(op)
-    
-    
+        
+        
+        
+        
+        obs_data <- obs_data %>%
+            map(., ~.[[vars]]) %>%
+            bind_rows() %>% 
+            dplyr::select(-LOC_ID, -CULTIVAR) %>%
+            nest(data = -c(ID)) %>% right_join(set, by= "ID") %>% unnest(data) %>%
+            select(-c(LOC_ID, CULTIVAR, PROJECT, TR_N)) 
+        
+        
+        op <- switch(variable, 
+                     dry_matter = obs_data %>%
+                         mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>%
+                         rename(date = SAMPLING_DATE) %>%
+                         select(ID:WAGT_SE, exp_file, -contains("LAI")) %>% 
+                         gather(var, value, -c(ID, exp_file, date)) %>%
+                         separate(var, c("var", "metric"), sep = "_") %>%
+                         spread(metric, value) %>% 
+                         rename(value = OBS, se = SE) %>% 
+                         dplyr::select(exp_file, date, var, value, se), 
+                     lai = obs_data %>%
+                         mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>% 
+                         rename(date=SAMPLING_DATE) %>%
+                         select(exp_file, date, contains("LAI")) %>% 
+                         mutate(var = "LAI") %>%
+                         rename(value=LAI_OBS, se=LAI_SE) %>%
+                         dplyr::select(exp_file, date, var, value, se),
+                     yield = obs_data %>%
+                         dplyr::select(exp_file, YIELD_AVG, YIELD_MIN, YIELD_MAX) %>%
+                         rename(value = YIELD_AVG, ymin = YIELD_MIN, ymax = YIELD_MAX) %>%
+                         mutate(var = "YIELD", diff_min = value - ymin,
+                                diff_max = ymax - value,
+                                se = (diff_max+diff_min)/2) %>%
+                         dplyr::select(exp_file, var, value, se),
+                     phen = obs_data %>% 
+                         dplyr::select(-ID) %>%
+                         gather(var, value, -exp_file) %>%
+                         mutate(value = as.Date(value)) %>%
+                         nest(data = -exp_file) %>% 
+                         mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
+                         unnest(phen_dae) %>%
+                         mutate(value = if_else(var == "MDAT", value - 7 , value)))
+        
+        
+        return(op)
+        
+        
 }
 
 
