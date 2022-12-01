@@ -77,7 +77,8 @@ impute_mean_wth <- function(wth_data, temp = "daily"){
   
   if(temp == "daily"){
     
-    imp_data <- wth_data %>% 
+    imp_data <- seq.Date(min(wth_data$date), max(wth_data$date), by = "1 day") %>% 
+      enframe(name =  NULL, value = "date") %>% left_join(wth_data, by = "date") %>%  
       mutate(year = year(date), month = month(date)) %>% 
       nest(data = -c(year, month)) %>%
       mutate(data = map(data, ~.x %>% 

@@ -223,7 +223,7 @@ soilgrids_to_oryza <- function(soilgrids_data, sn = c(3,1,1)) {
                                                             ~SSKS_cal(sand, clay, OM, SBDM))/10,   #Method developed by Suleiman and Ritchie (2001)
                                             STC = get_STC(sand, clay)) %>% 
                                      rename(sand = SAND, CLAY = clay, SLHW = phh2o, SILT = silt ) %>% 
-                                     dplyr::select(-c(label:bdod, nitrogen, soc, sand)))
+                                     dplyr::select(-c(label:bdod, nitrogen, soc, sand))
     
     
     dplyr::select(data_inp, SLB, everything())
