@@ -6,56 +6,65 @@
 
 
 ### Download *.EXE  ----> drates.exe, param.exe, oryzav3.exe, standard.crp 
-download_ORYZA_Tools <- function(folder = "."){
-    ip <- function() {
-        if (.Platform$OS.type == "windows") {
-            ipmessage <- system("ipconfig", intern = TRUE)
-        } else {
-            ipmessage <- system("ifconfig", intern = TRUE)
-        }
-        validIP <- "((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.]){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
-        any(grep(validIP, ipmessage))
-    }  
-    
-    if (all(c("ORYZA3.exe", "DRATE(v2).exe", "PARAM(v2).exe", "standard.crp") %in% list.files(folder))){
-            
-           print("All files in destination folder")
-            
-            
-    } else if(ip()==T){
-        
-        # Download DRATES and PARAM app  
-        download.file(url='https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/AllTools.zip',
-                      destfile='AllTools.zip', method='auto')
-        ls_tools<- unzip('AllTools.zip', list = T)
-        unzip('AllTools.zip', exdir = folder, files = ls_tools$Name[c(1,2,4)])
-        
-        # Download ORYZA.exe
-        download.file(url='https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/ORYZA3.zip',
-                      destfile='ORYZA3.zip', method='auto')
-        unzip('ORYZA3.zip', exdir = folder, files="ORYZA3.exe")
-        
-        #Download standard.crp
-        download.file("https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/standard.crp",
-                      destfile = paste(folder, "standard.crp", sep = "/"), method='auto')
-        
-        file.remove('AllTools.zip')
-        file.remove('ORYZA3.zip')
+download_ORYZA_Tools <- function(path){
+  
+  # set dir to download
+  wd <- getwd()
+  setwd(path)
+  folder <- "."
+  
+  ip <- function() {
+    if (.Platform$OS.type == "windows") {
+      ipmessage <- system("ipconfig", intern = TRUE)
     } else {
-        mens <- cat(
-"#####################################################
+      ipmessage <- system("ifconfig", intern = TRUE)
+    }
+    validIP <- "((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[.]){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+    any(grep(validIP, ipmessage))
+  }  
+  
+  if (all(c("ORYZA3.exe", "DRATE(v2).exe", "PARAM(v2).exe", "standard.crp", "AutoCalibration3.exe") %in% list.files())){
+    
+    print("All files in destination folder")
+    
+    
+  } else if(ip()==T){
+    
+    # Download DRATES and PARAM app  
+    download.file(url='https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/AllTools.zip',
+                  destfile='AllTools.zip', method='auto')
+    ls_tools<- unzip('AllTools.zip', list = T)
+    unzip('AllTools.zip', exdir = folder, files = ls_tools$Name[c(1,2,4)])
+    
+    # Download ORYZA.exe
+    download.file(url='https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/ORYZA3.zip',
+                  destfile='ORYZA3.zip', method='auto')
+    unzip('ORYZA3.zip', exdir = folder, files="ORYZA3.exe")
+    
+    #Download standard.crp
+    download.file("https://sites.google.com/a/irri.org/oryza2000/downloads/new-release/download-oryza-version3/standard.crp",
+                  destfile = paste(folder, "standard.crp", sep = "/"), method='auto')
+    
+    file.remove('AllTools.zip')
+    file.remove('ORYZA3.zip')
+  } else {
+    mens <- cat(
+      "#####################################################
 ####       WARNING! NO INTERNET CONECTION        ####
 ####      It is need copy ORYZA model Tools:     ####
 ####  ORYZA3.exe & drate(v2).exe & PARAM(v2).exe ####
 ####        AND CROP FILE standard.crp           ####
 #####################################################")
-        
-        print(mens)
-    }
     
+    print(mens)
+  }
+  
+  
+  setwd(wd)  
+  
 }
 
-### Install R Packages and dependeces.
+### Install R Packages and dependeces. Add mesage
 inpack <- function(pack){
     new_pack <- pack[!(pack %in% installed.packages()[, "Package"])]
     if (length(new_pack)) 
@@ -111,43 +120,6 @@ HUH_cal <- function(tmax, tmin, tbase = 8, topt = 30, thigh = 42.5) {
 } 
 
 
-### function to calculate solar radiation from sunshine hours or temperature data
-# data must have "date" and 'sbri' (or 'tmax' and 'tmin') variable,
-## A & B parameters from FAO, 
-#Frère M, Popov GF. 1979. Agrometeorological crop monitoring and forecasting. Plant
-#Production Protection Paper 17. Rome: Food and Agricultural Organization.
-#64 p.
-# kRs adjustment coefficient (0.16.. 0.19) -- for interior (kRs = 0.16) and coastal (kRs = 0.19) regions
-srad_cal <- function(data, lat, lon, alt, A = 0.29, B = 0.45, kRs = 0.175){
-    
-    stopifnot(require(sirad))
-    
-    if(!"sbri" %in% colnames(data))
-    {
-        data <- mutate(data, sbri = NA_real_)   #Aqui crea la variable brillo por si no existe
-    }
-    
-    step1 <- data %>% 
-        mutate(
-            extraT = extrat(lubridate::yday(date), radians(lat))$ExtraTerrestrialSolarRadiationDaily, # Calcula la radiacion extraterrestre
-            srad = ap(date, lat = lat, lon = lon,    # aqui aplica Angstrom-Prescott
-                      extraT, A, B, sbri),
-            srad = if_else(is.na(srad), kRs*sqrt(tmax - tmin)*extraT, srad))  # Aqui aplica Hargreaves
-    
-    max_srad <- mean(step1$extraT)*0.80     # calcula el maximo teorico de radiacion
-    
-    step2 <- step1 %>%  
-        mutate(
-            srad = if_else(srad>max_srad|srad<0|is.na(srad),  median(step1$srad, na.rm = T), srad)) %>%
-        dplyr::pull(srad)
-    
-    
-    return(step2)   # retorna la radiacion en MJ/m2*dia
-    
-    
-}
-
-
 # function for search and replace outliers data
 replace_outlier <- function(data, fill = "na"){
     
@@ -164,15 +136,17 @@ replace_outlier <- function(data, fill = "na"){
 
 ###Bootstraping function 
 mean_boot <- function(x){
+  
     smean.cl.boot(x, conf.int=.95, B=1000, na.rm=TRUE, reps=T)[1]}
 
 # Function to calculate evaluation metrics || 
-# Must had observated and simulated data in columns"obs" and "sim"
+# Must have observated and simulated data in columns"obs" and "sim"
 get_metrics <- function(data) {
     
     data %>% filter(complete.cases(.)) %>%
         summarise(n = n(),
                   r = cor(obs, sim, method = c("pearson")),
+                  tau = cor(obs, sim, method = c("kendall")),
                   RMSE = sqrt(mean((sim - obs)^2, na.rm = T)),
                   NRMSE = RMSE/mean(obs, na.rm = T),
                   MAE = sum(abs(sim - obs)/n),

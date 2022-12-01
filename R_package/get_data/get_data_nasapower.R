@@ -1,7 +1,7 @@
 # Script to download weather data from NASA-POWER
 # Source of data: NASA Prediction Of Worldwide Energy Resources https://power.larc.nasa.gov/
 # Author: Rodriguez-Espinoza J.
-# Repository: https://github.com/jrodriguez88/ciat_tools
+# Repository: https://github.com/jrodriguez88/agroclimR
 # 2019
 
 ## Load Packages
@@ -13,54 +13,58 @@
 #library(tictoc)
 
 ##Set arguments. Information about wth_vars and data access : https://power.larc.nasa.gov/docs/v1/
-#wth_vars <- c("PRECTOT" , 
+#wth_vars <- c("PRECTOTCORR" ,    #diff in V2
 #            "ALLSKY_SFC_SW_DWN", 
 #            "RH2M",
 #            "T2M_MAX",
 #            "T2M_MIN",
 #            "WS2M")
-#ini_date <- ymd("1983-01-01")
+#ini_date <- ymd("1988-01-01")
 #end_date <- ymd("2019-12-31")
 #lat <- 6.8
 #lon <- -58.1
 
 
 
-## `get_data_nasapower()`function: Download weather data from https://power.larc.nasa.gov/
+### Update for V2
+#https://power.larc.nasa.gov/dashboard/availability/daily/
+#https://power.larc.nasa.gov/#resources
 get_data_nasapower <- function(lat, lon, ini_date, end_date,
-                               wth_vars = c("PRECTOT", "ALLSKY_SFC_SW_DWN", "RH2M", "T2M_MAX", "T2M_MIN", "WS2M")){
+                               wth_vars = c("ALLSKY_SFC_SW_DWN", "PRECTOTCORR", "RH2M", "T2M_MAX", "T2M_MIN", "WS2M")){
     
     ini_date <- format(ini_date, "%Y%m%d")
     end_date <- format(end_date, "%Y%m%d")
     
-    link <- paste0("https://power.larc.nasa.gov/cgi-bin/v1/DataAccess.py?request=execute&identifier=SinglePoint&parameters=",
-           paste0(wth_vars, collapse = ","),"&startDate=", ini_date, "&endDate=", end_date,
-           "&userCommunity=AG&tempAverage=DAILY&outputList=ASCII&lat=",
-           lat,"&lon=", lon, "&user=anonymous")
-
+    link <- paste0("https://power.larc.nasa.gov/api/temporal/daily/point?start=", 
+                   ini_date, "&end=", end_date, "&latitude=", lat, "&longitude=", lon, "&community=ag&parameters=",
+                   paste0(wth_vars, collapse = ","), "&format=json&header=true&time-standard=lst")
+    
     json_data <- fromJSON(link)
     
-    data <- json_data$features$properties$parameter 
-
-map(data, ~gather(., "date", "value")) %>% 
-    bind_rows(.id = "var") %>%
-    spread(var, value) %>%
-    mutate(date = ymd(date))
-
+    json_data$properties$parameter %>% 
+        map(bind_cols) %>% 
+        map2(.y = names(.),
+             ~pivot_longer(.x, cols = everything(), values_to = .y, names_to = "date") %>%
+                 mutate(date = lubridate::ymd(date))) %>%
+        reduce(left_join, by = "date")
+    
 }
+
+
+
 
 
 
 from_nasa_to_model <- function(df){
     
-#    stopifnot(require(naniar))
+    stopifnot(require(naniar))
     
     df %>% 
-        replace_with_na_all(condition = ~.x == -99) %>%
+        replace_with_na_all(condition = ~.x == -999) %>%
         set_names(c("date", "srad", "rain", "rhum", "tmax", "tmin", "wspd")) %>%
         mutate(year = year(date), month = month(date), day = day(date)) %>% nest(data = -c(year, month)) %>%
         mutate(data = map(data, ~.x %>% impute_mean_at(.vars = vars(srad:wspd)))) %>% 
-    unnest(data) %>% impute_mean_at(.vars = vars(srad:wspd))
+    unnest(data) #%>% impute_mean_at(.vars = vars(srad:wspd))
     
 }
 
@@ -95,7 +99,7 @@ from_nasa_to_model <- function(df){
 # data %>% from_nasa_to_model() %>%  basic_qc_nasa()
 #
 ### Plot data example
-#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, PRECTOT)) + geom_line()
+#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, PRECTOTCORR)) + geom_line()
 #    
 ### Replace "NA" id and export to .csv
 #data %>% replace_with_na_all(condition = ~.x == -999) %>% write_csv("data.csv")

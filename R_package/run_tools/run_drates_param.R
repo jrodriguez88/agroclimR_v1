@@ -35,7 +35,10 @@
 #######################
 ### Create PARAM.in ###
 #######################
-run_drates_param <- function(exp_names) {
+run_drates_param <- function(exp_names, path) {
+    
+    wd <- getwd()
+    setwd(path)
     
 make_param <- function(rer,file_name){
     
@@ -182,6 +185,9 @@ if((file.exists(ms)==T) && (file.info(ms)$size>10000)==T)
 }
 Test("param.out")
 Sys.sleep(1)
+
+setwd(wd)
+
 }
 
 ###################################

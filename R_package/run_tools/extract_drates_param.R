@@ -27,8 +27,12 @@
 #dir.create(paste0(path,"/_OutPut_Graphic/_3_Partitioning_Factors"),showWarnings=F)
 #dir.create(paste0(path,"/_OutPut_Graphic/_4_Partitioning_Factors"),showWarnings=F)
 
-extract_drates_param <- function(exp_names) {
-
+extract_drates_param <- function(exp_names, path) {
+    
+    
+    wd <- getwd()
+    setwd(path)
+    
     #file <- "DRATE.OUT"
     #file <- "param.out"
     
@@ -40,9 +44,7 @@ extract_drates_param <- function(exp_names) {
     #exp_names <- list.files("EXP",pattern = "\\.exp$")
     #exp_names <- str_subset(list.files("EXP",pattern = "\\.exp$"), cultivar)
     exp_df <- exp_names %>%
-        str_sub(1,-5) %>% enframe() %>%
-        separate(value, c("LOC_ID", "CULTIVAR","PROJECT", "TR_N"), sep = "_") %>%
-        mutate(ID = paste0(LOC_ID, TR_N, PROJECT)) %>% select(-1)
+        str_sub(1,-5) %>% enframe(value = "exp_file", name = NULL)
     
     
     ################################
@@ -72,13 +74,14 @@ extract_drates_param <- function(exp_names) {
         #    pmap(list(file=file, skip=find_DVR, n_max=4), read_lines) %>% 
         #        map(., ~ str_split(., pattern = "=")) %>% map(., ~ bind_rows(.)) 
         
-        DVR_df <- bind_rows(DVR)
-        colnames(DVR_df) <- c("DVRJ", "DVRI", "DVRP", "DVRR", "LOC_ID", "CULTIVAR", "PROJECT", "TR_N","ID")
+        DVR_df <- bind_rows(DVR) %>% 
+            set_names(c("DVRJ", "DVRI", "DVRP", "DVRR", "exp_file")) %>%
+            dplyr::select(exp_file, everything())
         
-        return(DVR_df[c(9,5:8,1:4)])
+        return(DVR_df)
         
     }
-    DVR_df <<- read_DVR_drate("DRATE.OUT")
+    
     #str(DVR)
     
     ################################
@@ -124,13 +127,14 @@ extract_drates_param <- function(exp_names) {
             `colnames<-`(c("TSTR", "TSPI", "TSF",  "TSM",
                            "TGDDTR","TGDDPI","TGDDF","TGDDM",
                            "DAETR" , "DAEPI" , "DAEF"  , "DAEM" ,
-                           "LOC_ID", "CULTIVAR", "PROJECT", "TR_N", "ID")) %>%
-            mutate_at(1:12, as.character) %>% mutate_at(1:12, as.numeric)
+                           "exp_file")) %>%
+            mutate_at(1:12, as.character) %>% mutate_at(1:12, as.numeric) %>%
+            dplyr::select(exp_file, everything())
         
-        return(PHEN_df[c(17, 13:16, 1:12)])
+        return(PHEN_df)
         
     } 
-    PHEN_df <<- read_PHEN_drate("DRATE.OUT")
+    #   
     #str(PHEN_df)
     
     ###############################
@@ -158,15 +162,16 @@ extract_drates_param <- function(exp_names) {
                        WLVD = as.numeric(WLVD),
                        WST  = as.numeric(WST),
                        WSO  = as.numeric(WSO),
-                       ID= exp_df$ID[i])
+                       exp_file =  pull(exp_df[i,]))
         }
         
-        BM_df <- bind_rows(BM) %>% left_join(exp_df, by="ID")
+        BM_df <- bind_rows(BM) %>% 
+            dplyr::select(exp_file, everything())
         
-        return(BM_df[c(6:10, 1:5)])
+        return(BM_df)
         
     }
-    BMASS_df <<- read_biomass_param("param.out")
+    
     #str(Biomass)
     
     ###############################
@@ -193,15 +198,16 @@ extract_drates_param <- function(exp_names) {
                        FLV = as.numeric(FLV), 
                        FST = as.numeric(FST),
                        FSO  = as.numeric(FSO),
-                       ID= exp_df$ID[i])
+                       exp_file =  pull(exp_df[i,]))
         }
         
-        PF_df <- bind_rows(PF) %>% left_join(exp_df, by="ID")
+        PF_df <- bind_rows(PF) %>% 
+            dplyr::select(exp_file, everything())
         
         return(PF_df)
         
     }
-    BPART_df <<- read_biomass_partition_param("param.out")
+    
     #str(BPartition_f)
     
     ###############################
@@ -223,27 +229,26 @@ extract_drates_param <- function(exp_names) {
         for (i in 1:length(find_LAI)){
             LAI[[i]] <- suppressMessages(fread(file, skip = find_LAI[i], nrows = End_LAI[i]-find_LAI[i])) %>%
                 as_tibble()%>%
-                mutate(ID=exp_df$ID[i])
+                mutate(exp_file =  pull(exp_df[i,]))
             
             if (nrow(LAI[[i]])<1){ 
                 LAI[[i]]<- data.frame(DVS=NA, LAI=NA) %>%
-                    mutate(ID=exp_df$ID[i])
+                    mutate(exp_file =  pull(exp_df[i,]))
             }
             
             
         } #Extract LAI from param.out --> list()
         
-        LAI_df <- bind_rows(LAI) %>% left_join(exp_df, by="ID") %>% select(
-            c("DVS", "LAI","ID","LOC_ID", "CULTIVAR", "PROJECT", "TR_N")) %>% 
-            na.omit()
+        LAI_df <- bind_rows(LAI) %>% 
+            dplyr::select(exp_file, everything())
         #        na.omit()
         #    `colnames<-`(c("DVS", "LAI","ID","LOC_ID", "CULTIVAR", "PROJECT", "TR_N"))
         
         #   as.numeric(gsub("([0-9]+).*$", "\\1", LAI_df$DVS))
-        return(LAI_df[c(3:7, 1:2)])
+        return(LAI_df)
         
     }
-    LAI_df <<- read_LAI_param("param.out")
+    
     #str(LAI)
     #LAI_SLA <- dplyr::left_join(LAI, Biomass, by="ID")
     #file <- "DRATE.OUT"
@@ -263,9 +268,11 @@ extract_drates_param <- function(exp_names) {
         
         pmap(list(file=file, skip=find_FSTR, nrows=1), fread) %>%
             bind_rows() %>%
-            bind_cols(exp_df)
+            bind_cols(exp_df) %>% 
+            dplyr::select(exp_file, everything())
+        
     }
-    FSTR_df <<- read_FSTR_param("param.out")
+    
     
     
     ###############################
@@ -285,28 +292,43 @@ extract_drates_param <- function(exp_names) {
             which()-2
         
         drlv_list <- pmap(list(file=file, skip=find_DRLV, nrows=drlv_n - find_DRLV), fread) 
-        names(drlv_list) <- exp_df$ID
+        names(drlv_list) <- exp_df$exp_file
         
-        drlv_list %>% bind_rows(.id="ID") %>%
-            left_join(exp_df, by="ID")
+        drlv_list %>% bind_rows(.id="exp_file") 
     }
-    DRLV_df <<- read_DRLV_param("param.out")   
+    
     
     ##############################
     ### Create csv files
     ##############################
     
     #file.names <-list("DVR_df", "PHEN_df", "BMASS_df", "BPART_df", "LAI_df")
-    write.csv.df <- function(df){
-        df.name <- deparse(substitute(df))
-        write.csv(df, paste0(path,"//_OutPut_Df//",df.name,".csv"),row.names=F,quote =F)
-    }
+    #    write.csv.df <- function(df){
+    #        df.name <- deparse(substitute(df))
+    #        write.csv(df, paste0(path,"//_OutPut_Df//",df.name,".csv"),row.names=F,quote =F)
+    #    }
     #    write.csv.df(DVR_df)
     #    write.csv.df(PHEN_df)
     #    write.csv.df(BMASS_df)
     #    write.csv.df(BPART_df)
     #    write.csv.df(LAI_df)
+    
+    data_extracted <- list(
         
+        DVR_df = read_DVR_drate("DRATE.OUT"),    
+        PHEN_df = read_PHEN_drate("DRATE.OUT"),
+        BMASS_df = read_biomass_param("param.out"),
+        BPART_df = read_biomass_partition_param("param.out"),
+        LAI_df = read_LAI_param("param.out"),
+        FSTR_df = read_FSTR_param("param.out"),
+        DRLV_df = read_DRLV_param("param.out")
+    )
+    
+    # set project directory
+    setwd(wd) 
+    return(data_extracted)
+    
+    
     
 }
 

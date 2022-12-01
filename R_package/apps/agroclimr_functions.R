@@ -5,7 +5,7 @@
 
 
 # Group of functions to connect probabilistic seasonal forecast with Aquacrop model,  using  Aquacrop-R
-
+#My goal in developing these scripts was to expand the use and adoption of crop simulation models through open access tools.
 
 
 #blind fucntion to load requeriments
@@ -69,7 +69,7 @@ plot_prob_forecast <- function(pronostico, id_label = NULL){
 plot_resampling <- function(data_resampling, weather_data, id_label = NULL, stat = "mean") {
     
     #Set Names and labels  
-    var_name = c("rain", "prec", "srad", "tmin", "tmax", "rhum", "wvel")
+    var_name = c("rain", "rain", "srad", "tmin", "tmax", "rhum", "wspd")
     var_label = paste(var_name, c('(mm)', '(mm)', '(MJ/m²d)', '(°C)', '(°C)', '(%)', '(m/s)'))
     names(var_label) <- var_name
     
@@ -77,12 +77,12 @@ plot_resampling <- function(data_resampling, weather_data, id_label = NULL, stat
     to_monthly <- function(data, ...){
         data %>% 
             group_by(year, month) %>%
-            summarise(prec = sum(prec, ...), 
+            summarise(rain = sum(rain, ...), 
                       tmin = mean(tmin, ...), 
                       tmax = mean(tmax, ...), .groups = 'drop' 
                       #            srad = mean(srad), 
                       #            rhum = mean(rhum),
-                      #            wvel = mean(wvel)
+                      #            wspd = mean(wspd)
             ) %>% #write.csv("climate_data_monthly.csv")
             ungroup() 
     }
@@ -134,8 +134,8 @@ plot_resampling <- function(data_resampling, weather_data, id_label = NULL, stat
         #              color = "red", linetype = "twodash", size = 0.50) +
         facet_wrap(var ~ ., scales = "free", labeller = labeller(var = var_label)) +
         #    scale_x_continuous(labels = function(x) month.abb[x], breaks = 1:12) +
-#        scale_fill_manual(values = c(prec = "#619CFF", tmax = "orange1", tmin = "gold2"),
-        scale_fill_manual(values = c(prec = "#619CFF", tmax = "orangered3", tmin = "orange3"),                  
+#        scale_fill_manual(values = c(rain = "#619CFF", tmax = "orange1", tmin = "gold2"),
+        scale_fill_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"),                  
                           labels= c("Precipitacion", "Temperatura Maxima", "Temperatura Minima")) +
         scale_color_manual(values = c(Normal_Climatologica = "blue")) + #, Media_cimatologica = "red")) +
         #  xlim(1,6) +
@@ -164,7 +164,7 @@ plot_weather_series <- function(weather_data, id_label = NULL){
     to_monthly <- function(data, ...){
         data %>% 
             group_by(year, month) %>%
-            summarise(prec = sum(prec, ...), 
+            summarise(rain = sum(rain, ...), 
                       tmin = mean(tmin, ...), 
                       tmax = mean(tmax, ...), 
                       srad = mean(srad, ...), 
@@ -198,9 +198,9 @@ plot_weather_series <- function(weather_data, id_label = NULL){
         labs(title = paste0("Climatologia de ",  id_label),
              subtitle = "Boxplot Mensual",
              x = "Mes",
-             y =  NULL) +
-        scale_fill_manual(values = c(prec = "#619CFF", tmax = "orangered3", tmin = "orange3"))+
-        scale_color_manual(values = c(prec = "#619CFF", tmax = "orangered3", tmin = "orange3"))
+             y =  NULL) #+
+#        scale_fill_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))+
+#        scale_color_manual(values = c(rain = "#619CFF", tmax = "orangered3", tmin = "orange3"))
     
 }
 
@@ -241,7 +241,7 @@ resampling <-  function(data, CPT_prob, year_forecast){
                 data_add <- bind_rows(.x, .x %>% sample_n(size = 1) %>% mutate(day = 29)) 
                 return(data_add)})) %>% 
             unnest %>% 
-            dplyr::select(day, month,  year, prec,  tmax,  tmin)
+            dplyr::select(day, month,  year, rain,  tmax,  tmin)
         return(Dato_C)}
     
     # (F.to.resampling). It's use when leap == TRUE (this function delete a row in each february with 29 days). 
@@ -253,7 +253,7 @@ resampling <-  function(data, CPT_prob, year_forecast){
                 data_less <- .x %>% slice(-n())
                 return(data_less)})) %>% 
             unnest %>% 
-            dplyr::select(day, month,  year, prec,  tmax,  tmin) 
+            dplyr::select(day, month,  year, rain,  tmax,  tmin) 
         return(Dato_C)}
     
     # (F.to.resampling). This function organize the february data.
@@ -317,9 +317,9 @@ resampling <-  function(data, CPT_prob, year_forecast){
                 mutate(year_M = ifelse(month == 1, year, year+1)) %>% 
                 filter(year_M >= (Intial_year + 1), year_M < (last_year +1 ))%>%
                 group_by(year_M) %>% 
-                summarise(prec = sum(prec)) %>% 
+                summarise(rain = sum(rain)) %>% 
                 mutate(year = year_M - 1) %>% 
-                dplyr::select(year, prec)
+                dplyr::select(year, rain)
             
         } else if(Season == 'DJF'){
             new_data <- data %>%
@@ -327,25 +327,25 @@ resampling <-  function(data, CPT_prob, year_forecast){
                 mutate(year_M = ifelse(month %in% 1:2, year, year+1)) %>% 
                 filter(year_M >= (Intial_year + 1), year_M < (last_year +1 ))  %>%
                 group_by(year_M) %>% 
-                summarise(prec = sum(prec)) %>% 
+                summarise(rain = sum(rain)) %>% 
                 mutate(year = year_M - 1) %>% 
-                dplyr::select(year, prec)
+                dplyr::select(year, rain)
             
         } else{
             new_data <-  data %>%
                 filter(between(month, month_ini, month_end)) %>%
                 group_by(year) %>%
-                summarise(prec = sum(prec))%>% 
-                dplyr::select(year, prec)
+                summarise(rain = sum(rain))%>% 
+                dplyr::select(year, rain)
         }
         
         # Quantiles of monthly averages are generated ... (be careful how they were generated). 
-        quantile <- quantile(new_data$prec, probs = c(0.33, 0.66))
+        quantile <- quantile(new_data$rain, probs = c(0.33, 0.66))
         
         # Classification of the monthly series ...
         new_data <-  new_data %>% 
-            # mutate(condtion = case_when( prec < quantile[1] ~  'below', prec > quantile[2] ~ 'above' ,TRUE ~ 'normal')  ) %>%
-            mutate(condtion = ifelse(prec < quantile[1], 'below', ifelse(prec > quantile[2], 'above', 'normal')) ) %>%
+            # mutate(condtion = case_when( rain < quantile[1] ~  'below', rain > quantile[2] ~ 'above' ,TRUE ~ 'normal')  ) %>%
+            mutate(condtion = ifelse(rain < quantile[1], 'below', ifelse(rain > quantile[2], 'above', 'normal')) ) %>%
             nest(-condtion)
         
         return(new_data)}
@@ -371,7 +371,7 @@ resampling <-  function(data, CPT_prob, year_forecast){
                 filter(condtion == cat$Type) %>% ####################################
             unnest %>% 
                 sample_n(size = 1) %>% 
-                dplyr::select(-prec)
+                dplyr::select(-rain)
             
             return(mothly_data)}
         
@@ -434,7 +434,7 @@ resampling <-  function(data, CPT_prob, year_forecast){
         # Only the monthly grouping is done.
         monthly <- daily_by_season %>%
             group_by(year) %>%
-            summarise(monthly = sum(prec))
+            summarise(monthly = sum(rain))
         
         median <- round(nrow(monthly)/2, 0)
         
@@ -467,8 +467,8 @@ resampling <-  function(data, CPT_prob, year_forecast){
         b <- Indicators %>% filter(Type == 'max') %>% unnest()
         
         ab <- bind_cols(a, dplyr::select(b, -Type, -day, -month, -year) %>% setNames(paste0(names(.), 1))) %>%
-            dplyr::mutate(Type = 'mean_mm' , prec = (prec+prec1)/2, tmax = (tmax+tmax1)/2, tmin = (tmin + tmin1)/2 ) %>%
-            dplyr::select(-prec1, -tmin1, -tmax1) %>% nest(-Type)
+            dplyr::mutate(Type = 'mean_mm' , rain = (rain+rain1)/2, tmax = (tmax+tmax1)/2, tmin = (tmin + tmin1)/2 ) %>%
+            dplyr::select(-rain1, -tmin1, -tmax1) %>% nest(-Type)
         
         Indicators <- Indicators %>% bind_rows(., ab)
         
@@ -678,12 +678,12 @@ function_to_save <- function(station, Esc_all, path_out){
     #   unnest %>% 
     #   mutate(month = factor(month,Levels$month))  %>% 
     #   group_by(id, month, year) %>% 
-    #   summarise(prec = sum(prec), tmax = mean(tmax), tmin = mean(tmin)) %>% 
+    #   summarise(rain = sum(rain), tmax = mean(tmax), tmin = mean(tmin)) %>% 
     #   ungroup() %>% 
     #   dplyr::select(-id) %>%
     #   group_by(month) %>%
     #   group_by(year, month) %>%
-    #   summarise(prec_avg = mean(prec), prec_max = max(prec), prec_min = min(prec),
+    #   summarise(rain_avg = mean(rain), rain_max = max(rain), rain_min = min(rain),
     #             tmax_avg = mean(tmax), tmax_max = max(tmax), tmax_min = min(tmax),
     #             tmin_avg = mean(tmin), tmin_max = max(tmin), tmin_min = min(tmin)) %>%
     #   ungroup()
