@@ -139,7 +139,7 @@ tidy_wth_aquacrop <- function(wth_data){
     var_names <- colnames(wth_data)
     stopifnot(class(wth_data$date)=="Date" & all(c("tmax", "tmin", "rain") %in%  var_names))
     
-    impute_mean_wth(wth_data)
+    impute_mean_wth(wth_data) 
 
 }
 
@@ -147,7 +147,7 @@ tidy_wth_aquacrop <- function(wth_data){
 write_wth_aquacrop <-function(path, id_name, wth_data, lat, lon, elev, co2_file = "MaunaLoa.CO2") {
     
 
-    data <- tidy_wth_aquacrop(wth_data) 
+    data <- tidy_wth_aquacrop(wth_data) %>% mutate(ETo = ETo_cal(., lat, elev))
     
     ## Split data and write .ETo / .PLU / Tnx / .CLI files.
     

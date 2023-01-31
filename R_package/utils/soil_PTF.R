@@ -22,6 +22,7 @@
 #############################################################################################
 ##### SAXTON & RAWLS: SOIL WATER CHARACTERISTICS ESTIMATES
 ##### http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.452.9733&rep=rep1&type=pdf
+#https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=9601aadd2f5ef665a87248aa1563056c66da9f4d
 
 #  Saxton, K. E., & Rawls, W. J. (2006). Soil Water Characteristic Estimates by Texture and 
 #  Organic Matter for Hydrologic Solutions. Soil Science Society of America Journal,
@@ -234,7 +235,7 @@ WC0_Tomasella <- function(S, C, CS, SBDM) {
   Si <- 100-C-S
   x1 <- -1.06790 + 0.0536107*CS  #CS Coarse sand
   x3 <- -1.05976 + 0.0650437*Si
-  x6 <- -6.03516 + 4.81197*SMBD
+  x6 <- -6.03516 + 4.81197*SBDM
   
   z5 <- 0.164417 + 0.126139*(x1)^2 + 0.281797*x3 + 0.484823*x1*x3 - 0.293866*(x3)^2 - 0.354924*x1*(x3)^2 -
     0.705803*x6 - 0.189153*x3*x6 - 0.267997*x1*x3*x6 - 0.023954*x6*(x3)^2 - 0.0918816*x1*(x6)^2 + 0.0323997*(x6)^3
@@ -478,7 +479,7 @@ get_STC <- function(S, C, sysclass="USDA") {
 
 
 
-# Function to estimate Soil Saturated Hydraulic Conductivity (SSKS) from different Soil Pedotransfer Function (PTF)
+# Function to estimate Soil Saturated Hydraulic Conductivity (SSKS) from different Soil Pedotransfer Function (PTF) - Units: mm/h
 #SBDM by texture <-  "https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/survey/office/ssr10/tr/?cid=nrcs144p2_074844"
 # For rice-soils BD values between 1.3 - 1.7 (g/cm³)
 # OM values between 1 - 3 (%)

@@ -61,11 +61,32 @@ tidy_soil_oryza <- function(soil_data, sn = c(3,1,1)){
   } else {stop(message("NO data")) }
   
   
+  soil_test %>% rename_with(tolower)
+    rename_with(~ stringr::str_replace(.x, 
+                                       pattern = c("depth", "DEPTH", "SLB"), 
+                                      replacement = "depth")) %>% 
+ #   rename_with(~ stringr::str_replace(.x, 
+ #                                      pattern = "clay|CLAY|C|SLCL", 
+ #                                      replacement = "clay")) %>% 
+ #   rename_with(~ stringr::str_replace(.x, 
+ #                                      pattern = fixed("sand|SAND|S"), 
+ #                                      replacement = "sand")) %>% 
+ #   rename_with(~ stringr::str_replace(.x, 
+ #                                      pattern = "sbdm|SBDM|BD", 
+ #                                      replacement = "sbd")) %>% 
+ #   rename_with(~ stringr::str_replace(.x, 
+ #                                      pattern = "soc|SOC|OM", 
+ #                                      replacement = "soc")) %>% 
+ #   rename_with(~ stringr::str_replace(.x, 
+ #                                     pattern = fixed("silt|SILT|SLSI|Si"), 
+ #                                      replacement = "silt"))
+  
+  
   data <- soil_data %>%
-    mutate(SOC = DEPTH*SBDM*100*SC/0.58,
-           SON = DEPTH*SBDM*SLON/10,
-           SNH4X = DEPTH*SBDM*SNH4/10,
-           SNO3X = DEPTH*SBDM*SNO3/10)
+    mutate(SOC = DEPTH*SBDM*100*SOC/0.58,  #(kg C/ha) https://www.agric.wa.gov.au/measuring-and-assessing-soils/what-soil-organic-carbon
+           SON = DEPTH*SBDM*SLNI/10,       #(kg C/ha) 
+           SNH4X = DEPTH*SBDM*SNH4/10,      #(kg C/ha) 
+           SNO3X = DEPTH*SBDM*SNO3/10)      #(kg C/ha) 
   
   
   list(soil_data, CN)
@@ -86,7 +107,7 @@ write_soil_oryza <- function(path, id_name, soil_data, ZRTMS = 0.50, WL0I = 0, W
 #    dirfol <- paste0(path,'/', 'SOIL')
 #    dir.create((paste0(path,"/SOIL")), showWarnings = FALSE)
     data <- soil_data %>%
-        mutate(SOC = DEPTH*SBDM*100*SC/0.58,
+        mutate(SOC = DEPTH*SBDM*100*SOC/0.58,
                SON = DEPTH*SBDM*SLON/10,
                SNH4X = DEPTH*SBDM*SNH4/10,
                SNO3X = DEPTH*SBDM*SNO3/10)
@@ -99,8 +120,8 @@ sink(file=paste0(path,'/', id_name, ".sol"), append = F)
 cat("**********************************************************************",sep = '\n')
 cat("* Template soil data file for PADDY soil water balance model.        *",sep = '\n')
 cat("**********************************************************************",sep = '\n')
-cat(paste0("* Soil        : ", unique(data["LOC_ID"]), " - texture classes:", paste(data[1:nrow(data),"STC"], collapse = "-"), sep = '\n'))
-cat(paste0('* File name        : ', unique(data["ID"]), ".sol"), sep = '\n') 
+cat(paste0("* Soil        : ", id_name, " - texture classes:", paste(data[1:nrow(data),"STC"], collapse = "-"), sep = '\n'))
+cat(paste0('* File name        : ', id_name, ".sol"), sep = '\n') 
 cat(paste0('* Sampling date      : ', data$SAMPLING_DATE[1] ) ,sep = '\n') 
 cat(paste0('* Additional info  : ', 'Create with https://github.com/jrodriguez88') ,sep = '\n') 
 cat('*--------------------------------------------------------------------*',sep = '\n') 
@@ -301,6 +322,10 @@ writeLines(a[1:nrow(data)])
 sink()
 }
 
+
+
+
+write_soil_oryza("data/", "test", soilgrids_data%>%soilgrids_to_oryza())
 
 
 

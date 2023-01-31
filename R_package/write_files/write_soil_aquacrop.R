@@ -36,9 +36,24 @@ get_STC <- function(S, C, sysclass="USDA") {
 #REW <- 11
 
 
-write_soil_aquacrop <- function(path, id_name, soil_data, CN, REW, model_version = 6.1) {
+write_soil_aquacrop <- function(path, id_name, soil_data, model_version = 6.1) {
     
     data <- as.data.frame(soil_data)
+    
+    #CN: Curve number (dimensionless)
+    CN <- data[1,] %>% 
+      mutate(CN = case_when(Ksat <= 10 ~ 85,
+                            Ksat > 10 & Ksat <=50 ~ 80,
+                            Ksat > 50 & Ksat <=250 ~ 75,
+                            Ksat > 250 ~ 65)) %>% pull(CN)
+    
+    
+    # REW: Readily Evaporable Water (mm)
+    REW <- data[1,] %>%
+      mutate(REW_cal = (10*(FC - WP/2)*0.04),
+             REW = case_when(REW_cal >=15 ~ 15, 
+                             REW_cal < 0 ~ 0,
+                             TRUE ~ REW_cal)) %>% pull(REW) %>% sprintf("%1.f", .)
 
     sink(paste0(path, "/", id_name, ".SOL"), F)    
     cat(paste0(id_name, " AquaCrop soil file - by https://github.com/jrodriguez88"))
