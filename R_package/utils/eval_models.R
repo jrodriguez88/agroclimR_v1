@@ -64,7 +64,7 @@ extract_sim_var <- function(sim_data, exp_set, variable) {
                                  DVS >= 1 & DVS <= 1.2 ~ "FDAT",
                                  DVS >= 2 ~ "MDAT")) %>% 
                              drop_na() %>%
-                             nest(-c(exp_file, var)) %>%
+                             nest(data = -c(exp_file, var)) %>%
                              mutate(ref = case_when(var == "EDAT" ~ 0.00,
                                                     var == "IDAT" ~ 0.65,
                                                     var == "FDAT" ~ 1.00,
@@ -75,7 +75,7 @@ extract_sim_var <- function(sim_data, exp_set, variable) {
                                                     pull(date)) %>% as.Date(., origin = "1970-01-01")) %>%
                              dplyr::select(exp_file, var, date) %>% 
                              rename(value = date) %>% 
-                             nest(-exp_file) %>% 
+                             nest(data = -exp_file) %>% 
                              mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
                              unnest(phen_dae))
                                     
@@ -186,7 +186,10 @@ extract_obs_var <- function(obs_data, variable) {
 eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_var = F) {
     
     sim_ <- extract_sim_var(sim_data, exp_set, variable = variable)
-    obs_ <- extract_obs_var(obs_data, exp_set, variable = variable)
+    
+    obs_ <- extract_obs_var(obs_data, variable = variable) %>% 
+      dplyr::filter(exp_file %in% str_remove(exp_set, ".exp"))
+    
     
     id_join <- if(variable == "phen" | variable == "yield"){ 
         c("exp_file", "var")
@@ -210,7 +213,7 @@ eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_va
     if(by_var == TRUE){
         
         test_select %>%
-        nest(-c(var)) %>% 
+        nest(data = -c(var)) %>% 
         mutate(eval = map(data, ~get_metrics(.x)),
                plot = map(data, ~.x %>% 
                               ggplot(aes(obs, sim)) +
