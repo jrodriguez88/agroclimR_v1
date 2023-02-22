@@ -46,24 +46,7 @@ copy_inputs_oryza <- function(dest_path, basedata_path){
   
 }
 
-# Funcion para crear carpeta de simulacion en directorio raiz
-make_dir_run <- function(dir_run_main, id_run){
-  
-  
-  #  require(stringr)
-  dir <- paste0(dir_run_main, id_run, '/')
-  dir <- stringr::str_replace(dir, "ñ", "n")
-  
-  if (!dir.exists(dir)) { 
-    
-    dir.create(dir, showWarnings = F, recursive = TRUE, mode = "777")
-    # system('chmod 777 *.*')
-    # paste0(dir_base, region, '/', cultivar,  '/', select_day)
-    
-  }
-  
-  return(paste0(dir))
-}
+
 
 # Funcin para generar multiples combinaciones de tablas en un rango determinado 
 generate_combinations_paramsTb <- function(params_to_cal, default_list, length_escenaries = 2000){
@@ -175,7 +158,7 @@ cal_phen_oryza <- function(x1, x2, x3, x4, params_to_cal, cal_path, cultivar, in
   
   
   ### Run model Oryza
-  run_ORYZA(dir_run, cultivar, exp_files)
+  run_model_oryza(dir_run, cultivar, exp_files)
   
   
   
@@ -204,7 +187,6 @@ cal_phen_oryza <- function(x1, x2, x3, x4, params_to_cal, cal_path, cultivar, in
   
   
 }
-# GA <- ga(type = "real-valued", fitness = function(x) -f(x[1], x[2], x[3]), lower = c(21, 9, 10), upper = c(30, 15, 23), maxiter = 4)
 
 
 
@@ -224,7 +206,6 @@ cal_phen_oryza <- function(x1, x2, x3, x4, params_to_cal, cal_path, cultivar, in
 
 #params_to_cal <- generate_combinations_paramsTb(params_to_cal, default_list
 #Requiere generar multiples combinaciones de tablas de desarrollo
-
 
 ## Funcion de optimizacion de parametros de crecimiento del modelo oryza
 cal_grow_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, fenologia_params, cal_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
@@ -291,7 +272,7 @@ cal_grow_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, fenol
   
   
   ### Run model Oryza
-  run_ORYZA(dir_run, cultivar, exp_files)
+  run_model_oryza(dir_run, cultivar, exp_files)
   
   
   
@@ -320,7 +301,7 @@ cal_grow_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, fenol
   
   
 }
-# GA <- ga(type = "real-valued", fitness = function(x) -f(x[1], x[2], x[3]), lower = c(21, 9, 10), upper = c(30, 15, 23), maxiter = 4)
+
 
 
 
@@ -334,9 +315,7 @@ cal_grow_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, fenol
 #x7 = 21         #"COLDREP"
 #x8 = 36.5       #"CTSTER"   
 
-
 #params_to_cal <- anti_join(test_params_model, bind_rows(fenologia_params, grow_params))
-
 
 #Funcion de optimizacion para parametros de rendimiento y estreses abioticos
 cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, fenologia_params, grow_params, cal_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
@@ -374,7 +353,7 @@ cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, feno
   
   
   ### Run model Oryza
-  run_ORYZA(dir_run, cultivar, exp_files)
+  run_model_oryza(dir_run, cultivar, exp_files)
   
   
   
@@ -403,9 +382,111 @@ cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, feno
   
   
 }
-# GA <- ga(type = "real-valued", fitness = function(x) -f(x[1], x[2], x[3]), lower = c(21, 9, 10), upper = c(30, 15, 23), maxiter = 4)
 
 
+
+#x1 <- 0.0008554438  #"DVRJ"
+#x2 <- 0.0007576     #"DVRI"
+#x3 <- 0.0005704062  #"DVRP"
+#x4 <- 0.002219568   #"DVRR"
+#x5 = 20          #"SLATB"
+#x6 = 10          #"FSHTB"
+#x7 = 15          #"DRLVT"
+#x8 = 12          #"BFTB" 
+#x9 = 0.0085      #"RGRLMX
+#x10 = 0.004       #"RGRLMN
+#x11 = 0.004337274 #"SLAMAX
+#x12 = 0.2453043   #"FSTR"
+#x13 = 64900      #"SPGF"  
+#x14 = 0.0000249  #"WGRMX"  
+#x15 = 0.4        #"ZRTMCD"  
+#x16 = 1.45       #"ULLE"   
+#x17 = 1404       #"LLLE"   
+#x18 = 0.4        #"FSWTD"    
+#x19 = 21         #"COLDREP"
+#x20 = 36.5       #"CTSTER"  
+#test_params_oryza <- tidy_to_write_crop(final_params)
+#params_to_cal <- generate_combinations_paramsTb(test_params_oryza, default_list , 1000)
+
+#Funcion de optimizacion para parametros 22 parametros de ORYZA v3 - requiere combinacion de tablas 
+cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20,  params_to_cal, cal_path, cultivar, input_data, exp_files, test_params_model, basedata_path, res_var = c("yield")){
+  
+  
+  ##Crea set de parametros  a calibrar 
+  
+  
+  test_params <-  tibble(Parameter = params_to_cal$Parameter,
+                         Set_cal = list(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20)) %>% slice(-c(1:4)) %>%
+    
+    bind_rows(
+      
+      BPF <- params_to_cal %>% dplyr::filter(Parameter == "BFTB") %>% pull(tables) %>% pluck(1) %>%
+        dplyr::filter( id == as.integer(x4)) %>% 
+        pull(data) %>% pluck(1) %>% enframe(name = "Parameter", value = "Set_cal"),
+      
+      SLA <- params_to_cal %>% dplyr::filter(Parameter == "SLATB") %>% pull(tables) %>% pluck(1) %>%
+        dplyr::filter( id == as.integer(x1)) %>% 
+        pull(data) %>% pluck(1) %>% mutate(Parameter = "SLATB") %>% nest(Set_cal = -Parameter),
+      
+      FSH <- params_to_cal %>% dplyr::filter(Parameter == "FSHTB") %>% pull(tables) %>% pluck(1) %>%
+        dplyr::filter( id == as.integer(x2)) %>% 
+        pull(data) %>% pluck(1) %>% mutate(Parameter = "FSHTB") %>% nest(Set_cal = -Parameter),
+      
+      DRL <- params_to_cal %>% dplyr::filter(Parameter == "DRLVT") %>% pull(tables) %>% pluck(1) %>%
+        dplyr::filter( id == as.integer(x3)) %>% 
+        pull(data) %>% pluck(1) %>% mutate(Parameter = "DRLVT") %>% nest(Set_cal = -Parameter)
+    )
+  
+  
+  params_to <- test_params %>% right_join(test_params_model, by = "Parameter") %>%
+    mutate(to_test = map2(Base, Set_cal, function(x, y) if(is.null(y)){x} else {y}))
+  
+  crop_params_oryza <- params_to$to_test %>% set_names(params_to$Parameter)
+  
+  
+  ##Setting folder
+  
+  id_run <- as.integer(runif(1) * 10000000)
+  dir_run <- make_dir_run(cal_path, id_run)
+  cultivar <- paste0(cultivar, "_", id_run)
+  copy_inputs_oryza(dir_run, basedata_path)
+  
+  
+  ### Write crop file 
+  
+  write_crop_oryza(dir_run, cultivar, crop_params_oryza)
+  
+  
+  ### Run model Oryza
+  run_model_oryza(dir_run, cultivar, exp_files)
+  
+  
+  
+  res_file <- str_subset(list.files(dir_run, full.names = T), "_res.dat") %>% 
+    str_subset(str_to_lower(cultivar))
+  
+  sim_data_cal <- read_res_exp(res_file)
+  
+  
+  
+  metrics_cal <- map(res_var, 
+                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows()
+  
+  
+  # files_remove <- list.files(dir_run, full.names = T) %>% str_subset(pattern = ".crp$|.dat$", negate = T)
+  
+  
+  #map(files_remove, ~unlink(.x, recursive = T))
+  
+  unlink(dir_run, recursive = T)
+  
+  
+  
+  return(mean(metrics_cal$NRMSE))
+  
+  
+  
+}
 
 
 

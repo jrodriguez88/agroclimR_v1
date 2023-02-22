@@ -83,6 +83,8 @@ read_INPUT_data <- function(file) {
 }
 
 
+
+
 ### 'get_STC' function to get Soil Texture Class from soil sand, clay content.. based USDA system class
 get_STC <- function(S, C, sysclass="USDA") {
     stopifnot(require(soiltexture))
@@ -141,24 +143,24 @@ mean_boot <- function(x){
 
 # Function to calculate evaluation metrics || 
 # Must have observated and simulated data in columns"obs" and "sim"
-get_metrics <- function(data) {
-    
-    data %>% filter(complete.cases(.)) %>%
-        summarise(n = n(),
-                  r = cor(obs, sim, method = c("pearson")),
-                  tau = cor(obs, sim, method = c("kendall")),
-                  RMSE = sqrt(mean((sim - obs)^2, na.rm = T)),
-                  NRMSE = RMSE/mean(obs, na.rm = T),
-                  MAE = sum(abs(sim - obs)/n),
-                  MBE = sum((sim - obs))/n,
-                  d = 1 - ((sum((sim - obs)^2, na.rm = T))/
-                               sum((abs(sim - mean(obs, na.rm = T)) +
-                                        abs(obs - mean(obs, na.rm = T)))^2, na.rm = T)),
-                  NSE = 1 - ((sum((sim - obs)^2, na.rm = T))/
-                                 sum((obs - mean(obs, na.rm = T))^2, na.rm = T)),
-                  rsq = summary(lm(sim ~ obs))$r.squared)
-    
-}
+#get_metrics <- function(data) {
+#    
+#    data %>% filter(complete.cases(.)) %>%
+#        summarise(n = n(),
+#                  r = cor(obs, sim, method = c("pearson")),
+#                  tau = cor(obs, sim, method = c("kendall")),
+#                  RMSE = sqrt(mean((sim - obs)^2, na.rm = T)),
+#                  NRMSE = RMSE/mean(obs, na.rm = T),
+#                  MAE = sum(abs(sim - obs)/n),
+#                  MBE = sum((sim - obs))/n,
+#                  d = 1 - ((sum((sim - obs)^2, na.rm = T))/
+#                               sum((abs(sim - mean(obs, na.rm = T)) +
+#                                        abs(obs - mean(obs, na.rm = T)))^2, na.rm = T)),
+#                  NSE = 1 - ((sum((sim - obs)^2, na.rm = T))/
+#                                 sum((obs - mean(obs, na.rm = T))^2, na.rm = T)),
+#                  rsq = summary(lm(sim ~ obs))$r.squared)
+#    
+#}
 
 ##ggplot fav theme
 set_theme_jre <- function() {
@@ -185,6 +187,132 @@ get_elevation <- function(lat, lon, dataset = "aster30m"){
   
 }
 #get_elevation(3.82, -76.5)
+
+
+
+
+##### DSSAT  --- from DSSAT API jr
+
+
+# Crea formatos de fechas de simulacion 
+make_sim_dates <- function(initial_date, planting_before, number_days, freq_sim){
+  
+  #  require(tidyverse)
+  #  require(lubridate)
+  #  require(magrittr)
+  
+  
+  start_date <- seq.Date(initial_date, initial_date + days(number_days), by = freq_sim)
+  
+  plantig_date <- start_date + days(planting_before)
+  
+  dates <- list(start_date = start_date, planting_date = plantig_date)
+  
+  return(dates)
+  
+  
+}
+
+# Funcion para crear carpeta de simulacion en directorio raiz
+make_dir_run <- function(dir_run_main, id_run){
+  
+  
+  #  require(stringr)
+  dir <- paste0(dir_run_main, id_run, '/')
+  dir <- stringr::str_replace(dir, "ñ", "n")
+  
+  if (!dir.exists(dir)) { 
+    
+    dir.create(dir, showWarnings = F, recursive = TRUE, mode = "777")
+    # system('chmod 777 *.*')
+    # paste0(dir_base, region, '/', cultivar,  '/', select_day)
+    
+  }
+  
+  return(paste0(dir))
+}
+
+
+# Funcion copia inputs base en directorio de simulacion de cada setups
+copy_inputs <- function(dir_inputs_setup, dir_inputs_soil, dir_inputs_cultivar, crop, dir_run){
+  
+  CR <- tibble(
+    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
+    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF")) %>% filter(crop_name==crop)%>%
+    pull(CR)
+  
+  
+  gen_files <- list.files(dir_inputs_cultivar, full.names = T, pattern = "ECO|SPE|CUL") %>%
+    str_subset(CR)
+  
+  
+  setting_files <- list.files(dir_inputs_setup, full.names = T, pattern = "csv")
+  
+  soil_files <- list.files(dir_inputs_soil, full.names = T, pattern = ".SOL$")
+  
+  
+  #  dir_files <- list.files(dir_inputs, full.names = T)
+  file.copy(c(gen_files, setting_files, soil_files), dir_run)
+  
+  #  map2(.x = c("*.SPE", "*.ECO", "*.CUL"), 
+  #       .y = paste0("standard", c("*.SPE", "*.ECO", "*.CUL")), 
+  #       ~file.rename(
+  #         from = list.files(dir_run, pattern = .x, full.names = T), 
+  #         to = paste0(dir_run, .y)))
+  
+  
+}
+
+
+# Lee informacion de geolocalizacion
+# puede agregarse en un solo archivo - setups
+load_settings <- function(dir_run){
+  
+  frame_list <- function(data){
+    
+    setNames(split(data[,2], seq(nrow(data))), data[,1])
+    
+  }
+  
+  
+  print(paste0("dir_inputs_run: ", dir_run))
+  #  require(readr)
+  coordenadas <- read_csv(paste0(dir_run,'coordenadas.csv'), show_col_types = F) %>%
+    as.data.frame() %>%
+    frame_list()
+  
+}
+
+
+# Function to write Crop names/model/extension into DSSAT format
+crop_name_setup <- function(id_name, crop){
+  
+  base_tb <- tibble(
+    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
+    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF"),
+    model = c(paste0(c("RI", "MZ", "BA", "SG", "WH"), "CER"), rep("CRGRO", 2), "TFAPS"))
+  
+  cul <- base_tb %>% 
+    dplyr::filter(crop_name %in% all_of(crop)) %>%
+    mutate(crop_name =  toupper(crop_name),
+           ext = paste0(id_name, ".", CR, "X"))
+  
+  return(cul)
+  
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
