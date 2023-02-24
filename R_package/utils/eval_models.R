@@ -350,9 +350,9 @@ eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_va
                               ggplot(aes(obs, sim)) +
                               geom_point(aes(color = exp_file)) +
                               expand_limits(x = 0, y = 0) + 
-                              geom_abline(intercept = 0, slope = 1, linetype = "twodash", size=1)+
-                              geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", size=0.5, color = "red") +
-                              geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", size=0.5, color = "red") + 
+                              geom_abline(intercept = 0, slope = 1, linetype = "twodash", linewidth=1)+
+                              geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", linewidth=0.5, color = "red") +
+                              geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", linewidth=0.5, color = "red") + 
                               #geom_smooth(method = "lm", se=F)+
                               theme_bw())) %>% 
         unnest(eval)
@@ -365,9 +365,9 @@ eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_va
                                    ggplot(aes(obs, sim)) +
                                    geom_point(aes(color = exp_file)) +
                                    expand_limits(x = 0, y = 0) + 
-                                   geom_abline(intercept = 0, slope = 1, linetype = "twodash", size=1)+
-                                   geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", size=0.5, color = "red") +
-                                   geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", size=0.5, color = "red") + 
+                                   geom_abline(intercept = 0, slope = 1, linetype = "twodash", linewidth=1)+
+                                   geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", linewidth=0.5, color = "red") +
+                                   geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", linewidth=0.5, color = "red") + 
                                    #geom_smooth(method = "lm", se=F)+
                                    theme_bw())) %>% 
             dplyr::select(var, everything())

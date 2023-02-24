@@ -163,7 +163,7 @@ run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
   
   
   # run oryza - OS
-  print(paste('Simulation: ', path, " - ", crop))8
+  print(paste('Simulation: ', path, " - ", crop))
   
   if (Sys.info()['sysname'] == 'Windows'){ 
     

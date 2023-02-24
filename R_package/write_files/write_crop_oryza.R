@@ -17,12 +17,12 @@
 
 # Values + "Base ## Values name
 
-tidy_to_write_crop <- function(param_data, file = NULL, model = "oryza", values = "Base"){
+tidy_to_write_crop <- function(param_data, model = "oryza", values = "Base", export_default = T){
   
   
   if(!is.null(file = NULL)){
     
-    
+    message("")
     
   }
   
@@ -103,6 +103,13 @@ tidy_to_write_crop <- function(param_data, file = NULL, model = "oryza", values 
     
   )
   
+  if(is.null(param_data)){return(default_list)} 
+    
+ 
+  
+  if(isTRUE(export_default)){default_list <<- default_list}
+  
+  
   if(any(class(param_data) == "data.frame")) {
     
     stopifnot(any(names(param_data) == "Parameter"))
@@ -111,11 +118,10 @@ tidy_to_write_crop <- function(param_data, file = NULL, model = "oryza", values 
     
     param_data <- rename_with(param_data, .fn = function(x) str_replace(x, "Base|Set_cal", values))
     if(any(names(param_data) == "Min")){message("Minimum range are available")
-    } else if(any(names(param_data) == "Max")){
-      message("Maximum range are available")
-    } else {
-        param_data <- mutate(param_data, Min = list(NULL), Max = list(NULL))
-      }
+      } else {param_data <- mutate(param_data, Min = list(NULL))}
+    if(any(names(param_data) == "Max")){message("Maximum range are available")
+      } else {param_data <- mutate(param_data, Max = list(NULL))}
+
     
     test_params_oryza <- default_list %>% 
     left_join(param_data, by = "Parameter") %>%
