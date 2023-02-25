@@ -325,7 +325,7 @@ sink()
 
 
 
-write_soil_oryza("data/", "test", soilgrids_data%>%soilgrids_to_oryza())
+#write_soil_oryza("data/", "test", soilgrids_data%>%soilgrids_to_oryza())
 
 
 

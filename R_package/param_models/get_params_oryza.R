@@ -15,11 +15,11 @@
 #source("https://raw.githubusercontent.com/jrodriguez88/agroclimR/master/R_package/run_tools/extract_drates_param.R", encoding = "UTF-8")
 #source("https://raw.githubusercontent.com/jrodriguez88/agroclimR/master/R_package/run_tools/run_drates_param.R", encoding = "UTF-8")
 
-basedata_path <- paste0(path_proj) -> path
-input_data <- test_data$data$input_data
-exp_files <- list.files(paste0(basedata_path, "/EXP/"), pattern = "\\.exp$")
-model_curves <- c("lm", "loess")
-stat <- c("mean", "min", "max")
+#basedata_path <- paste0(path_proj) -> path
+#input_data <- test_data$data$input_data
+#exp_files <- list.files(paste0(basedata_path, "/EXP/"), pattern = "\\.exp$")
+#model_curves <- c("lm", "loess")
+#stat <- c("mean", "min", "max")
 
 
 ## Funcion que calcula y extrae los parametros para escribir el archivo de cultivo del modelo ORYZA 
