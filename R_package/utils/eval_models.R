@@ -25,7 +25,7 @@ import_exp_data <- function(path_data, INPUT_data_files, cultivar, model = "oryz
     unnest(soil_data) %>%
     mutate(LOC_ID = str_sub(ID, 1, 4)) %>% group_by(LOC_ID, NL) %>%
     summarize_if(is.numeric, .funs = mean_boot) %>%
-    mutate(ID=LOC_ID, STC=get_STC(SAND, CLAY)) %>% ungroup() %>% split(.$ID) %>% 
+    mutate(ID=LOC_ID, STC=get_STC(SAND, CLAY)) %>% ungroup() %>%  rename_with(.fn = function(x) str_replace(x, "SC", "SOC")) %>% split(.$ID) %>% 
     enframe(name = "site", value = "soil")
   
   
