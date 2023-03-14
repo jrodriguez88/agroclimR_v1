@@ -123,12 +123,85 @@ write_files_oryza <- function(path_proj, test_data){
   #crear archivos suelo
   dir_soil <- paste0(path_proj, "/SOIL/")
   dir.create(dir_soil, showWarnings = T)
-  map2(test_data$data$soil, test_data$data$site,  ~write_soil_oryza(dir_soil, .y, .x, SATAV = 25, RIWCLI = 'NO'))
+  
+  soil_data <- test_data$data$soil %>% 
+    map(~.x %>%
+          mutate(SOC = case_when(LOC_ID == "YOCS" ~ SOC/5,
+                                 TRUE ~ SOC),
+                 OM = (100/58)*SOC/10) %>% 
+          mutate(SSKS = pmap_dbl(.l = list(SAND, CLAY, OM, SBDM), ~SSKS_cal(SAND, CLAY, OM, SBDM))*240))
+  
+  
+  map2(soil_data, test_data$data$site,  ~write_soil_oryza(dir_soil, .y, .x, SATAV = 25, RIWCLI = 'NO'))
   
   
   
   
 }
+
+write_files_aquacrop <- function(path_proj, test_data){
+  
+  
+  ### Directorio de salidas (OUTPUTS)
+  dir.create(path_proj)
+  
+  ##Crear Archivos climaticos
+  dir_wth <- paste0(path_proj, "/WTH/")
+  dir.create(dir_wth)
+  
+  test_data$data %>% 
+    mutate(path = dir_wth , id_name = site) %>%
+    dplyr::select(path, id_name, wth_data = wth, lat, lon, elev) %>%
+    mutate(wth_data = map(wth_data, ~.x %>% impute_mean_wth),
+           pmap(., write_wth_aquacrop))
+  
+  
+  
+  #crear archivos suelo
+  dir_soil <- paste0(path_proj, "/SOIL/")
+  dir.create(dir_soil, showWarnings = T)
+  #test_data$data$input_data[[1]]$Metadata %>% filter(VAR_NAME == "SC")
+  
+  ## transform data to aquacrop format
+  test_data$data %>% unnest(soil) %>% 
+    mutate(SOC = case_when(LOC_ID == "YOCS" ~ SOC/5,
+                           TRUE ~ SOC)) %>% 
+    mutate(Penetrability = 100, 
+           TKL = c(DEPTH/100),
+           bdod = SBDM, Gravel = 0,
+           OM = (100/58)*SOC/10, # Organic matter (%) = Total organic carbon (%) x 1.72
+           SSKS = pmap_dbl(.l = list(SAND, CLAY, OM, SBDM), ~SSKS_cal(SAND, CLAY, OM, SBDM))*24,
+           CRa = case_when(str_detect(STC, "Sa|LoSa|SaLo") ~ (-0.3112 - SSKS*10^(-5)),
+                           str_detect(STC, "Lo|SiLo|Si") ~ (-0.4986 + SSKS*9*10^(-5)),
+                           str_detect(STC, "SaCl|SaClLo|ClLo") ~ (-0.5677 - SSKS*4*10^(-5)),
+                           str_detect(STC, "SiClLo|SiCl|Cl") ~ (-0.6366 + SSKS*8*10^(-4))),
+           CRb = case_when(str_detect(STC, "Sa|LoSa|SaLo") ~ (-1.4936 + 0.2416*log(SSKS)),
+                           str_detect(STC, "Lo|SiLo|Si") ~ (-2.1320 + 0.4778*log(SSKS)),
+                           str_detect(STC, "SaCl|SaClLo|ClLo") ~ (-3.7189 + 0.5922*log(SSKS)),
+                           str_detect(STC, "SiClLo|SiCl|Cl") ~ (-1.9165 + 0.7063*log(SSKS)))) %>%
+    dplyr::select(id_name = site, TKL, WCST, WCFC, WCWP, SSKS, Penetrability, Gravel, CRa, CRb, STC) %>%
+    setNames(c("id_name", "Thickness", "Sat", "FC", "WP", "Ksat", "Penetrability", "Gravel", "CRa", "CRb", "description")) %>%
+    nest(data = -c(id_name)) %>% mutate(map2(id_name, data, ~write_soil_aquacrop(dir_soil, .x, .y)))
+  
+  
+  
+  
+  
+  
+  
+  
+  #crear archivos experimentales
+  #dir_exp <- paste0(path_proj, "/EXP/")
+  #dir.create(dir_exp, showWarnings = T)
+  #map(test_data$data$input_data, ~write_exp_oryza(.x, dir_exp, ET_mod = "PRIESTLY TAYLOR"))
+  
+  
+  
+  
+  
+  
+}
+
 
 
 
