@@ -193,7 +193,7 @@ write_exp_oryza <- function(INPUT_data, out_path, ET_mod = "PRIESTLY TAYLOR") {
         #cat("NPLH   = ","2.0"),sep = '\n')
         #cat("NH     = ","33.0"),sep = '\n')
         #cat("NPLSB  = ","1000."),sep = '\n')
-        cat(paste0("NPLDS  = ", NPLDS,"."), sep = '\n') 
+        cat(paste0("NPLDS  = ", sprintf("%1.f", NPLDS),"."), sep = '\n') 
         cat(paste0("LAPE   = ", "0.0001"), sep = '\n')
         cat(paste0("DVSI   = ", "0.0"), sep = '\n')
         cat(paste0("WLVGI  = ", "0.0"), sep = '\n')

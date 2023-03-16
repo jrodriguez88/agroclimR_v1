@@ -119,7 +119,7 @@ get_params_oryza <- function(path, input_data, exp_files, model_curves = "lm", s
   
 #Spikelet growth factor  
   
-  SPGF = SPGF_cal(tidy_params$SPGF_tb),
+  SPGF = SPGF_cal_safe(tidy_params$SPGF_tb),
   
   
 #Maximum individual grain weight   
@@ -500,7 +500,7 @@ SPGF_extract <- function(INPUT_data, max_diff = 4) {
     mutate(LOC_ID=substr(ID, 1,4))
   
 }
-
+SPGF_cal_safe <- possibly(SPGF_cal, NULL)
 
 ## Function to calculate SPGF by lm 
 
