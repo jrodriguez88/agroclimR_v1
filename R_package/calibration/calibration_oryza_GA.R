@@ -294,7 +294,8 @@ cal_growth_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, phe
   
   
   metrics_cal <- map(c("dry_matter", "lai"), 
-                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows()
+                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% 
+                        bind_rows() %>% filter(var %in% c("WAGT", "LAI"))
   
   
   # files_remove <- list.files(dir_run, full.names = T) %>% str_subset(pattern = ".crp$|.dat$", negate = T)
@@ -374,8 +375,9 @@ cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, phen
   
   
   
-  metrics_cal <- map(c("yield"), 
-                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows()
+  metrics_cal <- map(c("yield", "dry_matter"), 
+                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows() %>% 
+                        dplyr::filter(var %in% c("WAGT", "YIELD"))
   
   
   # files_remove <- list.files(dir_run, full.names = T) %>% str_subset(pattern = ".crp$|.dat$", negate = T)
@@ -485,7 +487,8 @@ cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, 
   
   
   metrics_cal <- map(res_var, 
-                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows()
+                     ~eval_sim_oryza(input_data, sim_data_cal, exp_files, .x, T)) %>% bind_rows() %>% 
+    dplyr::filter(var %in% c("IDAT", "FDAT", "MDAT", "LAI", "WAGT", "YIELD"))
   
   
   # files_remove <- list.files(dir_run, full.names = T) %>% str_subset(pattern = ".crp$|.dat$", negate = T)
@@ -569,58 +572,71 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
   if(all(cal_stages %in% c("global"))) {
     
     ### all parameters of oryza
-    params_to_cal <- tidy_to_write_crop(test_params_oryza)
+    test_params_global <- tidy_to_write_crop(test_params_oryza)
     
-    params_to_cal <- generate_combinations_paramsTb(params_to_cal, default_list, length_escenaries =  n_escenarios)
+    global_to_cal <- generate_combinations_paramsTb(test_params_global, default_list, length_escenaries =  n_escenarios)
     
-    message("ORYZA v3.0 - Parameter Optimization - Genetic Algotithm")
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
+    
+    low_min1 <- global_to_cal$Min %>% unlist()
+    upp_max1 <- global_to_cal$Max %>% unlist()
+    names_par1 <- global_to_cal$Parameter %>% unlist()
     
     
     tic("Global calibration")
-    GA_oryza <- ga(type = "real-valued", 
-                   fitness = function(x) -cal_oryza_global(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],x[9], x[10], x[11], x[12], x[13], x[14], x[15], x[16], x[17], x[18], x[19], x[20],
-                                                           params_to_cal, calibration_path, cultivar, 
-                                                           input_data, exp_files, default_list, basedata_path, res_var = res_var),
-                   lower = params_to_cal$Min %>% unlist(), 
-                   upper = params_to_cal$Max %>% unlist(), 
-                   maxiter = max_iter,
-                   popSize = pop_size,
-                   pmutation = 0.2,
-                   parallel = cl, 
-                   names = params_to_cal$Parameter %>% unlist())
+    GA_oryza <<- ga(type = "real-valued", 
+                    fitness = function(x) -cal_oryza_global(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],x[9], x[10], x[11], x[12], x[13], x[14], x[15], x[16], x[17], x[18], x[19], x[20],
+                                                            global_to_cal, calibration_path, cultivar, 
+                                                            input_data, exp_files, default_list, basedata_path, res_var = res_var),
+                    lower = low_min1, 
+                    upper = upp_max1, 
+                    maxiter = max_iter,
+                    popSize = pop_size,
+                    pmutation = 0.2,
+                    parallel = cl, 
+                    names = names_par1)
     
     GA_oryza@solution
     toc()
     
+    closeAllConnections()
     gc()
-    #Sys.sleep()
     
     
     oryza_paramsGA <- as.data.frame(GA_oryza@solution) %>% sample_n(1) %>%
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") #%>%
     #mutate(Set_cal =  map(Set_cal, ~.x))
     
-    oryza_params <-    bind_rows(
+    gparams <- list(
       
-      params_to_cal %>% dplyr::filter(Parameter == "BFTB") %>% pull(tables) %>% pluck(1) %>%
-        dplyr::filter( id == as.integer(filter(oryza_paramsGA, Parameter == "BFTB") %>% pull(Set_cal))) %>% 
+      BFT = global_to_cal %>% dplyr::filter(Parameter == "BFTB") %>% pull(tables) %>% pluck(1) %>%
+        dplyr::filter(id == as.integer(filter(oryza_paramsGA, Parameter == "BFTB") %>% pull(Set_cal))) %>% 
         pull(data) %>% pluck(1) %>% enframe(name = "Parameter", value = "Set_cal"),
       
-      map(c("SLATB", "FSHTB", "DRLVT"),  ~dplyr::filter(params_to_cal, Parameter == .x) %>% pull(tables) %>% pluck(1) %>%
-            dplyr::filter( id == as.integer(filter(oryza_paramsGA, Parameter == .x) %>% pull(Set_cal))) %>% 
-            pull(data) %>% pluck(1)  %>% mutate(Parameter = .x) %>% nest(Set_cal = -Parameter)) %>% bind_rows(), 
+      other_t = map(c("SLATB", "FSHTB", "DRLVT"),  ~dplyr::filter(global_to_cal, Parameter == .x) %>% pull(tables) %>% pluck(1) %>%
+                      dplyr::filter( id == as.integer(filter(oryza_paramsGA, Parameter == .x) %>% pull(Set_cal))) %>% 
+                      pull(data) %>% pluck(1)  %>% mutate(Parameter = .x) %>% nest(Set_cal = -Parameter)) %>% bind_rows(),
       
-      tibble(Parameter = params_to_cal$Parameter,
-             Set_cal = oryza_paramsGA$Set_cal) %>% slice(-c(1:4)) %>% 
-        mutate(Set_cal =  map(Set_cal, ~.x)))
-    
-    closeAllConnections()
-    
-    return(list(params = oryza_params, GA_global = GA_oryza))
+      other_p = tibble(Parameter = global_to_cal$Parameter,
+                       Set_cal = oryza_paramsGA$Set_cal) %>% slice(-c(1:4)) %>% mutate(Set_cal =  map(Set_cal, ~.x)))
     
     
-  
     
+    
+    
+    global_params <<-  safe_bind(gparams)
+    
+    
+    #closeAllConnections()
+    message("GA - Global calibration done!")
+    return(list(params = global_params, GA_global = GA_oryza))
+    
+    message("Parameter Optimization Done!")
+    
+
     }
   else if(all(cal_stages %in% c("phen"))) {
     
@@ -642,7 +658,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     gc()
     Sys.sleep(5)
     
-    phen_params <- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
+    phen_params <<- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") %>%
       mutate(Set_cal =  map(Set_cal, ~.x))
     
@@ -841,7 +857,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
   else if(all(cal_stages %in% c("phen", "dry_matter_lai", "yield"))) {
     
     
-    message("ORYZA v3.0 - Genetic Algotithm
+    message("ORYZA v3.0 - Genetic Algorithm
             
             - Parameter Optimization - 3 stage:
             ")
@@ -854,16 +870,23 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     phen_to_cal <- test_params_oryza %>% dplyr::filter(str_detect(Parameter, phen_pattern))
     
+    low_minp <- phen_to_cal$Min %>% unlist()
+    upp_maxp <- phen_to_cal$Max %>% unlist()
+    names_parp <- phen_to_cal$Parameter %>% unlist()
+    
     
     #1. Phenological development parameters
     message(paste0("1st Stage: GA_Phenology - Parameters: ", phen_pattern))
     tic(paste0("Phenology parameters Calibration"))
-    GA_phen <- ga(type = "real-valued", fitness = function(x) -cal_phen_oryza(x[1], x[2], x[3], x[4], phen_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path),
-                  lower = phen_to_cal$Min %>% unlist(), upper = phen_to_cal$Max %>% unlist(), maxiter = max_iter,
+    GA_phen <- ga(type = "real-valued", 
+                  fitness = function(x) -cal_phen_oryza(x[1], x[2], x[3], x[4], phen_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path),
+                  lower = low_minp, 
+                  upper = upp_maxp, 
+                  maxiter = max_iter,
                   popSize = pop_size,
                   pmutation = 0.2,
                   parallel = cl, 
-                  names = phen_to_cal$Parameter %>% unlist())
+                  names = names_parp)
     
     GA_phen@solution
     toc()
@@ -899,7 +922,9 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     cl <- makeCluster(ncores)
     plan(future::cluster, workers = cl)
     
-    
+    low_ming <- growth_to_cal$Min %>% unlist()
+    upp_maxg <- growth_to_cal$Max %>% unlist()
+    names_parg <- growth_to_cal$Parameter %>% unlist()
     
     
     
@@ -910,13 +935,13 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
                     fitness = function(x) -cal_growth_oryza(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],
                                                             growth_to_cal, phen_params, calibration_path, cultivar, 
                                                           input_data, exp_files, test_params_oryza, basedata_path),
-                    lower = growth_to_cal$Min %>% unlist(), 
-                    upper = growth_to_cal$Max %>% unlist(), 
+                    lower =  low_ming, 
+                    upper = upp_maxg, 
                     maxiter = max_iter,
                     popSize = pop_size,
                     pmutation = 0.2,
                     parallel = cl, 
-                    names = growth_to_cal$Parameter)
+                    names = names_parg)
     
     GA_growth@solution
     toc()
@@ -927,7 +952,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     ### Organiza parametros de GA para continuar proceso de calibracion 
     
-    grow_paramsGA <<- as.data.frame(GA_growth@solution) %>% sample_n(1) %>%
+    grow_paramsGA <- as.data.frame(GA_growth@solution) %>% sample_n(1) %>%
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") #%>%
     #  mutate(Set_cal =  map(Set_cal, ~.x))
     
@@ -948,7 +973,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     
          
-    safe_bind <- possibly(bind_rows, otherwise = NULL)   
+   # safe_bind <- possibly(bind_rows, otherwise = NULL)   
     
     growth_params <<-  safe_bind(pparams)
       
@@ -964,7 +989,9 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     cl <- makeCluster(ncores)
     plan(future::cluster, workers = cl)
     
-   
+   low_min <- yield_to_cal$Min %>% unlist()
+   upp_max <- yield_to_cal$Max %>% unlist()
+   names_par <- yield_to_cal$Parameter %>% unlist()
     
     ## Yield
     #9. Temperature and drought stress parameters
@@ -974,13 +1001,13 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
                    fitness = function(x) -cal_yield_oryza(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],
                                                           yield_to_cal, phen_params, growth_params, calibration_path, cultivar, 
                                                           input_data, exp_files, test_params_oryza, basedata_path),
-                   lower = yield_to_cal$Min %>% unlist(), 
-                   upper = yield_to_cal$Max %>% unlist(), 
+                   lower = low_min, 
+                   upper = upp_max, 
                    maxiter = max_iter,
                    popSize = pop_size,
                    pmutation = 0.2,
                    parallel = cl, 
-                   names = yield_to_cal$Parameter %>% unlist())
+                   names = names_par)
     
     GA_yield@solution
     toc()
@@ -988,7 +1015,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     closeAllConnections()
     gc()
     
-    yield_params <- as.data.frame(GA_yield@solution) %>% sample_n(1) %>%
+    yield_params <<- as.data.frame(GA_yield@solution) %>% sample_n(1) %>%
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") %>%
       mutate(Set_cal =  map(Set_cal, ~.x))
     
@@ -998,7 +1025,8 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     message("Parameter Optimization Done!")
     
-    return(list(params = bind_rows(phen_params, growth_params, yield_params), GA_phen = GA_phen, GA_growth = GA_growth, GA_yield = GA_yield))
+    return(list(params = bind_rows(phen_params, growth_params, yield_params), 
+                GA_phen = GA_phen, GA_growth = GA_growth, GA_yield = GA_yield))
     
     
   
@@ -1010,8 +1038,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
   else if(all(cal_stages %in% c("phen", "dry_matter_lai", "yield", "global"))) {
     
     message("ORYZA v3.0 - Genetic Algotithm
-            
-            - Parameter Optimization - 3 stage:
+            4 stages:
             ")
     
     ##default list of parameters - based on IR72 and IR64 -- max an min == +/- 30%
@@ -1022,16 +1049,23 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     phen_to_cal <- test_params_oryza %>% dplyr::filter(str_detect(Parameter, phen_pattern))
     
+    low_minp <- phen_to_cal$Min %>% unlist()
+    upp_maxp <- phen_to_cal$Max %>% unlist()
+    names_parp <- phen_to_cal$Parameter %>% unlist()
+    
     
     #1. Phenological development parameters
     message(paste0("1st Stage: GA_Phenology - Parameters: ", phen_pattern))
     tic(paste0("Phenology parameters Calibration"))
-    GA_phen <<- ga(type = "real-valued", fitness = function(x) -cal_phen_oryza(x[1], x[2], x[3], x[4], phen_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path),
-                  lower = phen_to_cal$Min %>% unlist(), upper = phen_to_cal$Max %>% unlist(), maxiter = max_iter,
+    GA_phen <- ga(type = "real-valued", 
+                  fitness = function(x) -cal_phen_oryza(x[1], x[2], x[3], x[4], phen_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path),
+                  lower = low_minp, 
+                  upper = upp_maxp, 
+                  maxiter = max_iter,
                   popSize = pop_size,
                   pmutation = 0.2,
                   parallel = cl, 
-                  names = phen_to_cal$Parameter %>% unlist())
+                  names = names_parp)
     
     GA_phen@solution
     toc()
@@ -1067,24 +1101,26 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     cl <- makeCluster(ncores)
     plan(future::cluster, workers = cl)
     
-    
+    low_ming <- growth_to_cal$Min %>% unlist()
+    upp_maxg <- growth_to_cal$Max %>% unlist()
+    names_parg <- growth_to_cal$Parameter %>% unlist()
     
     
     
     #6. Growth parameters 
     message(paste0("2nd Stage: GA_Growth - Parameters: ", growth_pattern))
     tic("Growth and Leaf parameters Calibration")
-    GA_growth <<- ga(type = "real-valued", 
+    GA_growth <- ga(type = "real-valued", 
                     fitness = function(x) -cal_growth_oryza(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],
                                                             growth_to_cal, phen_params, calibration_path, cultivar, 
                                                             input_data, exp_files, test_params_oryza, basedata_path),
-                    lower = growth_to_cal$Min %>% unlist(), 
-                    upper = growth_to_cal$Max %>% unlist(), 
+                    lower =  low_ming, 
+                    upper = upp_maxg, 
                     maxiter = max_iter,
                     popSize = pop_size,
                     pmutation = 0.2,
                     parallel = cl, 
-                    names = growth_to_cal$Parameter)
+                    names = names_parg)
     
     GA_growth@solution
     toc()
@@ -1116,7 +1152,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     
     
-    safe_bind <- possibly(bind_rows, otherwise = NULL)   
+   # safe_bind <- possibly(bind_rows, otherwise = NULL)   
     
     growth_params <<-  safe_bind(pparams)
     
@@ -1132,25 +1168,27 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     cl <- makeCluster(ncores)
     plan(future::cluster, workers = cl)
     
-    
+    low_min <- yield_to_cal$Min %>% unlist()
+    upp_max <- yield_to_cal$Max %>% unlist()
+    names_par <- yield_to_cal$Parameter %>% unlist()
     
     ## Yield
     #9. Temperature and drought stress parameters
     message(paste0("3rd Stage: GA_Yield+Stress - Parameters: ", yield_pattern))
     tic("Yield calibration + stress parameters")
-    GA_yield <<- ga(type = "real-valued", 
+    GA_yield <- ga(type = "real-valued", 
                    fitness = function(x) -cal_yield_oryza(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],
                                                           yield_to_cal, phen_params, growth_params, calibration_path, cultivar, 
                                                           input_data, exp_files, test_params_oryza, basedata_path),
-                   lower = yield_to_cal$Min %>% unlist(), 
-                   upper = yield_to_cal$Max %>% unlist(), 
+                   lower = low_min, 
+                   upper = upp_max, 
                    maxiter = max_iter,
                    popSize = pop_size,
                    pmutation = 0.2,
                    parallel = cl, 
-                   names = yield_to_cal$Parameter %>% unlist())
+                   names = names_par)
     
-    print(GA_yield@solution)
+    GA_yield@solution
     toc()
     
     closeAllConnections()
@@ -1162,7 +1200,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     message("GA - Yield done!")
     
-
+    
     
     test_params_global <- bind_rows(phen_params, growth_params, yield_params) %>% tidy_to_write_crop()
     # growth_params <- test_params_model %>% filter(str_detect(Parameter, growth_pattern)) %>% 
@@ -1174,19 +1212,23 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     cl <- makeCluster(ncores)
     plan(future::cluster, workers = cl)
     
+    low_min1 <- global_to_cal$Min %>% unlist()
+    upp_max1 <- global_to_cal$Max %>% unlist()
+    names_par1 <- global_to_cal$Parameter %>% unlist()
+    
     
     tic("Global calibration")
     GA_oryza <<- ga(type = "real-valued", 
                    fitness = function(x) -cal_oryza_global(x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8],x[9], x[10], x[11], x[12], x[13], x[14], x[15], x[16], x[17], x[18], x[19], x[20],
                                                            global_to_cal, calibration_path, cultivar, 
                                                            input_data, exp_files, default_list, basedata_path, res_var = res_var),
-                   lower = global_to_cal$Min %>% unlist(), 
-                   upper = global_to_cal$Max %>% unlist(), 
+                   lower = low_min1, 
+                   upper = upp_max1, 
                    maxiter = max_iter,
                    popSize = pop_size,
                    pmutation = 0.2,
                    parallel = cl, 
-                   names = global_to_cal$Parameter %>% unlist())
+                   names = names_par1)
     
     GA_oryza@solution
     toc()
@@ -1216,12 +1258,12 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
       
     
-    global_params <<-  bind_rows(gparams)
+    global_params <<-  safe_bind(gparams)
     
     
     #closeAllConnections()
     message("GA - Global calibration done!")
-    return(list(params = global_params, GA_phen = GA_phen, GA_growth = GA_growth, GA_yield = GA_yield, GA_global = GA_oryza))
+    return(list(parameters_final = global_params, parameters_3stage = test_params_global, GA_phen = GA_phen, GA_growth = GA_growth, GA_yield = GA_yield, GA_global = GA_oryza))
     
     message("Parameter Optimization Done!")
     
@@ -1240,7 +1282,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
 
 
 
-cal_stages <- c("phen", "dry_matter_lai", "yield", "global")
+# cal_stages <- c("phen", "dry_matter_lai", "yield", "global")
 #cal_stages <- c("phen", "dry_matter_lai", "yield")
 #cal_stages <- c("phen", "lai", "dry_matter", "yield", "global")
 #cal_stages <- c("phen", "dry_matter", "lai", "yield", "global")
@@ -1251,13 +1293,13 @@ cal_stages <- c("phen", "dry_matter_lai", "yield", "global")
 
 
 
-pop_iter  = c(15, 4)
+#pop_iter  = c(15, 4)
 
 
-load("test_data_GA.RData")
+#load("test_data_GA.RData")
 
 
-testf2000_0227 <- calibration_oryza_GA(calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path, cal_stages = cal_stages, pop_iter = pop_iter, ncores = 8)
+#testf2000_0227 <- calibration_oryza_GA(calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path, cal_stages = cal_stages, pop_iter = pop_iter, ncores = 8)
 
 
 #save(calibration_path, cultivar, input_data, exp_files, test_params_oryza, basedata_path, testf2000_GA_cal_3stages, file = "test_data_GA.RData")

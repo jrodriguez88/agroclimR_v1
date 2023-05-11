@@ -500,7 +500,7 @@ SPGF_extract <- function(INPUT_data, max_diff = 4) {
     mutate(LOC_ID=substr(ID, 1,4))
   
 }
-SPGF_cal_safe <- possibly(SPGF_cal, NULL)
+#SPGF_cal_safe <- possibly(SPGF_cal, NULL)
 
 ## Function to calculate SPGF by lm 
 
@@ -536,6 +536,8 @@ SPGF_cal <- function(SPGF_df, out="", min = 35000, max = 67000) {
   }
   
 }
+
+#SPGF_cal_safe <- possibly(SPGF_cal, NULL)
 
 
 
