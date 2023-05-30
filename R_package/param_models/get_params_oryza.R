@@ -270,7 +270,7 @@ tidy_params_oryza <- function(input_data, raw_params, method = 1){
   
   ## Table of leaf death coefficient 
   DRLV_tb <- tibble(raw_params$DRLV_df %>% dplyr::filter(DRLV>0)) %>% 
-    mutate(Value = DRLV, Parameter = "DRLV") 
+    mutate(Value = DRLV, Parameter = "DRLV") %>% dplyr::select(exp_file, DRLV, Parameter, DVSM, Value )
   
   # TAble of Fraction of carbohydrates allocated to stems that is stored as reserves
   FSTR_tb <- tibble(raw_params$FSTR_df) %>% dplyr::filter(FSTR > 0.03)
@@ -555,7 +555,7 @@ make_grow_curves <- function(data, dvs = c(0, 0.5, 0.75, 1, 1.5, 2.5), model = "
   
   if(model == "loess"){
     
-    modeled_data <- data %>% dplyr::select(contains("Parameter"), contains("DVS"), Value) %>% 
+    modeled_data <- data %>% dplyr::select(contains("Parameter"), contains("DVSM"), Value) %>% 
       nest(data = -contains("Parameter")) %>%
       mutate(data =  map(data , ~.x %>% set_names(c("X", "Y"))), 
              model =  map(data, ~loess(Y~X, data = .x, se = T, span = span)),
@@ -612,8 +612,8 @@ make_grow_curves <- function(data, dvs = c(0, 0.5, 0.75, 1, 1.5, 2.5), model = "
     
     
     
-    modeled_data <- data %>% dplyr::select(contains("Parameter"), contains("DVS"), Value) %>% 
-      nest(data = -contains("Parameter")) %>%
+      modeled_data <- data %>% dplyr::select(contains("Parameter"), contains("DVSM"), Value) %>% 
+        nest(data = -contains("Parameter")) %>%
       mutate(data =  map(data , ~.x %>% set_names(c("X", "Y"))), 
              model =  map(data, ~find_best_model(.x)[[1]]),
              predict_tb = map(model, ~predict(.x, newdata = data.frame(X = dvs), interval = "confidence") %>% 

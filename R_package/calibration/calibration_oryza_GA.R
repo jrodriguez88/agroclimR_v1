@@ -420,8 +420,9 @@ cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, phen
 #test_params_oryza <- tidy_to_write_crop(final_params)
 #params_to_cal <- generate_combinations_paramsTb(test_params_oryza, default_list , 1000)
 
+#phenol  <- phen_params
 #Funcion de optimizacion para parametros 22 parametros de ORYZA v3 - requiere combinacion de tablas 
-cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20,  params_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path, res_var = c("yield")){
+cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20,  params_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path, res_var = c("yield"), phenol = NULL){
   
   
   ##Crea set de parametros  a calibrar 
@@ -577,9 +578,9 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     global_to_cal <- generate_combinations_paramsTb(test_params_global, default_list, length_escenaries =  n_escenarios)
     
     # plan(multiprocess)
-    registerDoFuture()
-    cl <- makeCluster(ncores)
-    plan(future::cluster, workers = cl)
+#    registerDoFuture()
+#    cl <- makeCluster(ncores)
+#    plan(future::cluster, workers = cl)
     
     low_min1 <- global_to_cal$Min %>% unlist()
     upp_max1 <- global_to_cal$Max %>% unlist()
@@ -1037,7 +1038,7 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     } 
   else if(all(cal_stages %in% c("phen", "dry_matter_lai", "yield", "global"))) {
     
-    message("ORYZA v3.0 - Genetic Algotithm
+    message("ORYZA v3.0 - Genetic Algorithm
             4 stages:
             ")
     
@@ -1202,6 +1203,8 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     
     
+    message(paste0("4th Stage: GA Global - Parameters: ", phen_pattern, growth_pattern, yield_pattern))
+    
     test_params_global <- bind_rows(phen_params, growth_params, yield_params) %>% tidy_to_write_crop()
     # growth_params <- test_params_model %>% filter(str_detect(Parameter, growth_pattern)) %>% 
     #   dplyr::select(Parameter, Set_cal = Base)
@@ -1241,22 +1244,22 @@ calibration_oryza_GA <- function(calibration_path, cultivar, input_data, exp_fil
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") #%>%
     #mutate(Set_cal =  map(Set_cal, ~.x))
     
-    gparams <- list(
-      
-      BFT = global_to_cal %>% dplyr::filter(Parameter == "BFTB") %>% pull(tables) %>% pluck(1) %>%
-        dplyr::filter(id == as.integer(filter(oryza_paramsGA, Parameter == "BFTB") %>% pull(Set_cal))) %>% 
-        pull(data) %>% pluck(1) %>% enframe(name = "Parameter", value = "Set_cal"),
-      
-      other_t = map(c("SLATB", "FSHTB", "DRLVT"),  ~dplyr::filter(global_to_cal, Parameter == .x) %>% pull(tables) %>% pluck(1) %>%
-                      dplyr::filter( id == as.integer(filter(oryza_paramsGA, Parameter == .x) %>% pull(Set_cal))) %>% 
-                      pull(data) %>% pluck(1)  %>% mutate(Parameter = .x) %>% nest(Set_cal = -Parameter)) %>% bind_rows(),
-      
-      other_p = tibble(Parameter = global_to_cal$Parameter,
-                       Set_cal = oryza_paramsGA$Set_cal) %>% slice(-c(1:4)) %>% mutate(Set_cal =  map(Set_cal, ~.x)))
     
     
+    BFT <-  global_to_cal %>% dplyr::filter(Parameter == "BFTB") %>% pull(tables) %>% pluck(1) %>%
+      dplyr::filter(id == as.integer(filter(oryza_paramsGA, Parameter == "BFTB") %>% pull(Set_cal))) %>% 
+      pull(data) %>% pluck(1) %>% enframe(name = "Parameter", value = "Set_cal")
     
-      
+    
+    other_t <- map(c("SLATB", "FSHTB", "DRLVT"),  ~dplyr::filter(global_to_cal, Parameter == .x) %>% pull(tables) %>% pluck(1) %>%
+                    dplyr::filter( id == as.integer(filter(oryza_paramsGA, Parameter == .x) %>% pull(Set_cal))) %>% 
+                    pull(data) %>% pluck(1)  %>% mutate(Parameter = .x) %>% nest(Set_cal = -Parameter)) %>% bind_rows()
+    
+    other_p <- tibble(Parameter = global_to_cal$Parameter,
+                     Set_cal = oryza_paramsGA$Set_cal) %>% slice(-c(1:4)) %>% mutate(Set_cal =  map(Set_cal, ~.x))
+    
+    
+    gparams <- list(BFT, other_t, other_p)
     
     global_params <<-  safe_bind(gparams)
     
