@@ -139,6 +139,11 @@ write_files_oryza <- function(path_proj, test_data){
   
 }
 
+#Arguments
+#path_proj <- getwd() %>% paste0("/_AQUACROP")
+test_data <- import_exp_data(path_data, files, cultivar)
+#unlink(path_proj, recursive = T)
+
 write_files_aquacrop <- function(path_proj, test_data){
   
   
@@ -151,16 +156,16 @@ write_files_aquacrop <- function(path_proj, test_data){
   
   test_data$data %>% 
     mutate(path = dir_wth , id_name = site) %>%
-    dplyr::select(path, id_name, wth_data = wth, lat, lon, elev) %>%
-    mutate(wth_data = map(wth_data, ~.x %>% impute_mean_wth),
-           pmap(., write_wth_aquacrop))
+    dplyr::select(path, id_name, wth = wth, lat, lon, elev) %>%
+    mutate(wth = map(wth, ~.x %>% impute_mean_wth)) %>%
+    pmap(., write_wth_aquacrop)
   
   
   
   #crear archivos suelo
   dir_soil <- paste0(path_proj, "/SOIL/")
   dir.create(dir_soil, showWarnings = T)
-  #test_data$data$input_data[[1]]$Metadata %>% filter(VAR_NAME == "SC")
+  #test_data$data$input_data[[1]]$Metadata %>% View %>%filter(VAR_NAME == "SC")
   
   ## transform data to aquacrop format
   test_data$data %>% unnest(soil) %>% 
@@ -185,18 +190,58 @@ write_files_aquacrop <- function(path_proj, test_data){
   
   
   
-  
-  
-  
-  
-  
   #crear archivos experimentales
-  #dir_exp <- paste0(path_proj, "/EXP/")
-  #dir.create(dir_exp, showWarnings = T)
-  #map(test_data$data$input_data, ~write_exp_oryza(.x, dir_exp, ET_mod = "PRIESTLY TAYLOR"))
+  #funcion para remover separadores "_" de las variables a analizar
+  remove_unders <- function(var){str_replace_all(var, "_", "")}
+  
+  # Crop Phenology
+  phen <- test_data$phen
+  #plot_phen_obs(phen) #%>% ggplotly()
   
   
   
+  #Agronomic data - Plant populations
+  agro_data <- test_data$data$input_data %>% map(~.x[["AGRO_man"]]) %>% bind_rows() %>%
+    mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
+    mutate(PDAT = as.Date(PDAT), exp_file  = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_")) %>%
+    dplyr::select(exp_file, PDAT:NPLDS) #%>% set_names(~tolower(.x))
+  
+  
+  
+  # Join data to parameter estimation
+  data_param_aquacrop <- phen %>% dplyr::select(exp_file, data) %>% 
+    dplyr::distinct() %>% 
+    mutate(MDAT = map(data, ~.x %>% dplyr::filter(var == "MDAT") %>% pull(value))) %>%
+    unnest(MDAT) %>% dplyr::select(-data) %>%
+    #  dplyr::filter(exp_file %in% exp_filter) %>%
+    mutate(id_name = word(exp_file, 1, sep = "_")) %>% 
+    left_join(agro_data, by = join_by(exp_file)) %>% 
+    dplyr::select(id_name, exp_file, PDAT, everything()) 
+  
+  
+  
+  data_param_aquacrop %>% 
+    mutate(exp = pmap(list(path_proj = path_proj,
+                           id_name = exp_file,
+                           clim_name = id_name,
+                           soil_name = id_name,
+                           cultivar  = "F2000",
+                           sowing_date = PDAT,
+                           harvest_date = MDAT,
+                           co2_name = "MaunaLoa",
+                           irri_name = tolower(CROP_SYS),
+                           man_agro = "rice"), write_exp_aquacrop))
+  
+  
+  
+  
+  # write irrigation file 
+  write_irri_aquacrop(path_proj)
+  
+  
+  
+  # write agronomic management file
+  write_man_aquacrop(path_proj)
   
   
   
@@ -227,7 +272,7 @@ get_metrics <- function(data) {
 }
 
 ## extract_sim_var function to extract simulation data by variable (phen, dry_matter, yield, lai)
-extract_sim_var <- function(sim_data, exp_set, variable) {
+extract_sim_oryza <- function(sim_data, exp_set, variable) {
     
     vars <- switch(variable, 
                    dry_matter = c("date", "DVS", "WAGT", "WLVG", "WST", "WSO", "WLVD"), 
@@ -290,7 +335,7 @@ extract_sim_var <- function(sim_data, exp_set, variable) {
 }
 
 ### extract from base data
-extract_obs_var <- function(obs_data, variable) {
+extract_obs_oryza <- function(obs_data, variable) {
         
         # vars select shet names required
         vars <- switch(variable, 
@@ -464,4 +509,37 @@ eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_va
 #    facet_wrap(~var, scales = "free") + 
 #    theme_bw()
 ##metrics %>% mutate(plot = map2(plot, var, ~.x + ggtitle(.y))) %>% pull(plot)
+
+
+
+
+
+
+
+
+######
+
+######   AQUACROP 
+
+
+
+# Funcion copia inputs base en directorio de simulacion de cada setups
+copy_inputs_aquacrop <- function(path_proj, basedata_path){
+  
+  # ruta con los archivos necesarios para 
+  files_default <- list.files(basedata_path, recursive = T, full.names = T)
+  
+  file.copy(files_default, path_proj, recursive = T)
+  
+  
+  dir.create(paste0(path_proj, "/OUTP"))
+  dir.create(paste0(path_proj, "/SIMUL"))
+  
+  
+  file.copy(list.files(path_proj, pattern = "CO2", full.names = T), paste0(path_proj, "/SIMUL/"))
+  
+  
+}
+
+#copy_inputs_aquacrop(path_proj, "_AQUACROP/")
 

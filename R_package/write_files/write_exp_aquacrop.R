@@ -1,110 +1,66 @@
+# Write experimental file AQUACROP (PRM)
+# Author: Rodriguez-Espinoza J.
+# Repository: https://github.com/jrodriguez88/
+# 2023
 
 
 
-
-test_data$data$input_data[[1]]
-
-test_data$data
-test_data$phen$data
-
-
-
+#path_proj <- "D:/00_DEVELOPER/aquacrop_2023/F2000/"
+#id_name <- "AIHU_FED2000_MADRI_S1" 
+#clim_name <- "AIHU" -> soil_name
+#cultivar <- "F2000"
+#sowing_date <- test_data2$PDAT[[1]]
+#harvest_date <- test_data2$PDAT[[1]] + 130
 
 
-
-## Write Aquacrop Experimental Projects
-
-
-input_data <- test_data$data$input_data[[1]]
-
-
-out_path
-
-
-aquacrop_files, plugin_path  === base_path
-
-
-tidy_to_exp_aquacrop
-
-
-
-input
-
-
-#funcion para remover separadores "_" de las variables a analizar
-remove_unders <- function(var){str_replace_all(var, "_", "")}
-
-
-#tabla de experimentos crea nombre de archivos experimentales == ID
-exp_data <- input_data$AGRO_man %>% 
-  mutate_at(.vars = vars(LOC_ID, CULTIVAR, PROJECT, TR_N), .funs = remove_unders) %>%
-  mutate(PDAT = as.Date(PDAT), exp_file  = paste(LOC_ID, CULTIVAR, PROJECT, TR_N, sep = "_")) #%>% 
-           #paste0(out_path, .,".exp")) 
-
-
-
-# Extrae datos por componente del archivo experiental
-
-# Datos  de fertilizacion
-#FERT <- nest(input_data$FERT_obs, FERT_obs = - ID) 
-
-# Datos de Fenologia
-PHEN <- nest(input_data$PHEN_obs, PHEN_obs = - ID)
-
-# Datos de crecimiento y desarrollo
-PLANT <- nest(input_data$PLANT_gro, PLANT_gro = - ID)
-
-# Datos de Rendimiento
-YIELD <-  nest(input_data$YIELD_obs, YIELD_obs = - ID)
-
-if(any(colnames(exp_data) == "SBDUR")){} else {
-  exp_data <- mutate(exp_data, SBDUR  = NA)
-} 
-
-if(any(colnames(exp_data) == "TRDAT")){} else {
-  exp_data <- mutate(exp_data, TRDAT  = NA)
-}
-
-
-to_write_exp <- purrr::reduce(list(exp_data, PHEN, PLANT, YIELD), left_join, by = "ID")
-
-
-
-
-
-
-
-
-
-
-
-write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data, co2, id2, max_crop_duration = 140, aquacrop_files, ){
+write_exp_aquacrop <- function(path_proj, id_name, clim_name, soil_name, cultivar, sowing_date, harvest_date, co2_name = "MaunaLoa", irri_name = "rainfed", man_agro = "none", ini_cond = "none"){
   
   ## Create sowing dates vector, use when requiere 1 date 
   #    sowing_dates  <- c(sowing_date - (5:1), sowing_date + (0:4))
   ##### add function // eval inputs 
   
   
-  plugin_path
-  
-  
-  
-  ### load aquacrop files
-  clim_file <- 
-  co2_file <-  paste0(aquacrop_files, ".CO2")
-  crop_file <- list.files(aquacrop_files, pattern = paste0(cultivar, ".CRO"))
-  irri_file <- list.files(aquacrop_files, ".IRR") %>% c(., "rainfed")
-  man_file <-  if(length(list.files(aquacrop_files, ".MAN")) == 0){"none"} else {list.files(aquacrop_files, ".MAN")}
-  soil_file <- list.files(aquacrop_files, paste0(soil, ".SOL"))
-  ini_file <-  if(length(list.files(aquacrop_files, ".SW0")) == 0){"none"} else {list.files(aquacrop_files, ".SW0")}
-  proj_file <- list.files(aquacrop_files, ".PRM")
+### load aquacrop files
+  clim_file <- clim_name
+  co2_file <-  paste0(co2_name, ".CO2")
+  crop_file <- paste0(cultivar, ".CRO")
+  irri_file <- if(irri_name == "rainfed"){irri_name} else {paste0(irri_name, ".IRR")}
+  man_file <-  if(man_agro == "none"){"none"} else {paste0(man_agro, ".MAN")}
+  soil_file <- paste0(soil_name, ".SOL")
+  ini_file <-  if(ini_cond == "none"){"none"} else {paste0(ini_cond, ".SW0")}
+#  proj_file <- list.files(aquacrop_files, ".PRM")
   
   ### Default parameters,  
-  def_params <- read_lines(paste0(aquacrop_files, proj_file), skip = 6, n_max = 21) 
+  def_params <- paste(
+    "      4         : Evaporation decline factor for stage II
+      1.10      : Ke(x) Soil evaporation coefficient for fully wet and non-shaded soil surface
+      5         : Threshold for green CC below which HI can no longer increase (% cover)
+     70         : Starting depth of root zone expansion curve (% of Zmin)
+      5.00      : Maximum allowable root zone expansion (fixed at 5 cm/day)
+     -6         : Shape factor for effect water stress on root zone expansion
+     20         : Required soil water content in top soil for germination (% TAW)
+      1.0       : Adjustment factor for FAO-adjustment soil water depletion (p) by ETo
+      3         : Number of days after which deficient aeration is fully effective
+      1.00      : Exponent of senescence factor adjusting drop in photosynthetic activity of dying crop
+     12         : Decrease of p(sen) once early canopy senescence is triggered (% of p(sen))
+     10         : Thickness top soil (cm) in which soil water depletion has to be determined
+     30         : Depth [cm] of soil profile affected by water extraction by soil evaporation
+      0.30      : Considered depth (m) of soil profile for calculation of mean soil water content for CN adjustment
+      1         : CN is adjusted to Antecedent Moisture Class
+     20         : salt diffusion factor (capacity for salt diffusion in micro pores) [%]
+    100         : salt solubility [g/liter]
+     16         : shape factor for effect of soil water content gradient on capillary rise
+     12.0       : Default minimum temperature (°C) if no temperature file is specified
+     28.0       : Default maximum temperature (°C) if no temperature file is specified
+      3         : Default method for the calculation of growing degree days")
+  
+  
+  
+  
   
   
   ### Create multiple combinations of params
-  params <- expand.grid(aquacrop_files,
+  params <- expand.grid(path_proj,
                         clim_file,
                         co2_file,
                         crop_file,
@@ -112,10 +68,9 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
                         man_file,
                         soil_file,
                         ini_file,
-                        max_crop_duration,
-                        sowing_dates) %>% 
+                        sowing_date) %>% 
     as_tibble() %>%
-    setNames(c("aquacrop_files",
+    setNames(c("path_proj",
                "clim_file",
                "co2_file",
                "crop_file",
@@ -123,13 +78,11 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
                "man_file",
                "soil_file",
                "ini_file",
-               "max_crop_duration",
                "sowing_date"))
   
   
   ## Function to calculate and create crop growing cycles
-  cal_cycles_project <- function(clim_data,
-                                 aquacrop_files,
+  cal_cycles_project <- function(path_proj,
                                  clim_file,
                                  co2_file,
                                  crop_file,
@@ -137,33 +90,17 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
                                  man_file,
                                  soil_file,
                                  ini_file,
-                                 max_crop_duration,
                                  sowing_date) {
     
     # path files
-    path_files <- aquacrop_files %>% str_replace_all(pattern = "/", replacement = "\\\\")
-    
-    ### extract "GDDays: from sowing to maturity" from CRO_file
-    gdd_mt <- read_lines(file = paste0(aquacrop_files, crop_file)) %>%
-      str_subset("GDDays: from sowing to maturity|GDDays: from transplanting to maturity") %>% 
-      str_extract("[0-9]+") %>% as.numeric
-    
-    ### extract Base temperature 
-    tbase <- read_lines(file = paste0(aquacrop_files, crop_file)) %>%
-      str_subset("Base temperature") %>% 
-      str_extract("[0-9]+") %>% as.numeric
+    path_files <- path_proj %>% str_replace_all(pattern = "/", replacement = "\\\\")
+    path_wth <- paste0(path_proj,  "WTH/") %>% str_replace_all(pattern = "/", replacement = "\\\\")
+    path_soil <- paste0(path_proj,  "SOIL/") %>% str_replace_all(pattern = "/", replacement = "\\\\")
     
     #    max_crop_duration <- gdd_mt / clim_data %>% mutate(HUH = ((tmax + tmin)/2) - tbase) %>% summarise(median(HUH)) %>% pull(1)
     
     # calculate crop duration 
-    crop_duration <- clim_data %>% 
-      dplyr::filter(date >= sowing_date,
-                    date <= sowing_date + max_crop_duration - 1) %>%
-      mutate(HUH = ((tmax + tmin)/2) - tbase) %>%
-      mutate(sum_gdd = cumsum(HUH)) %>%
-      dplyr::filter(sum_gdd<= gdd_mt) %>% 
-      count() %>% pull(n)
-    
+    crop_duration <- as.numeric(harvest_date - sowing_date)
     # Calculate numeric dates
     first_day <- as.numeric(sowing_date - make_date(1900, 12, 31))
     last_day <- first_day + crop_duration
@@ -182,16 +119,16 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
       cat('\n')    
       cat("-- 1. Climate (CLI) file", sep = '\n')
       cat(paste0(clim_file, ".CLI"), sep = '\n')
-      cat(paste0(path_files), sep = '\n')
+      cat(paste0(path_wth), sep = '\n')
       cat("1.1 Temperature (TMP) file", sep = '\n')
       cat(paste0(clim_file, ".Tnx"), sep = '\n') 
-      cat(paste0(path_files), sep = '\n')
+      cat(paste0(path_wth), sep = '\n')
       cat("1.2 Reference ET (ETo) file", sep = '\n')
       cat(paste0(clim_file, ".ETo"), sep = '\n')
-      cat(paste0(path_files), sep = '\n')
+      cat(paste0(path_wth), sep = '\n')
       cat("1.3 Rain (PLU) file", sep = '\n')
       cat(paste0(clim_file, ".PLU"), sep = '\n')
-      cat(paste0(path_files), sep = '\n')
+      cat(paste0(path_wth), sep = '\n')
       cat("1.4 Atmospheric CO2 (CO2) file", sep = '\n')
       cat(paste(co2_file), sep = '\n')
       cat(paste0(path_files), sep = '\n')
@@ -216,7 +153,7 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
       }
       cat("-- 5. Soil profile (SOL) file", sep = '\n')
       cat(paste(soil_file), sep = '\n')
-      cat(paste0(path_files), sep = '\n')
+      cat(paste0(path_soil), sep = '\n')
       cat("-- 6. Groundwater (GWT) file", sep = '\n')
       cat("(None)", sep = '\n')
       cat("(None)", sep = '\n')
@@ -239,10 +176,9 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
   
   
   ## Function to compute all runs for params table
-  runs_cal <- function(params, clim_data) {
+  runs_cal <- function(params) {
     
-    params %>% mutate(runs = cal_cycles_project(clim_data, 
-                                                aquacrop_files,
+    params %>% mutate(runs = cal_cycles_project(path_proj,
                                                 clim_file,
                                                 co2_file,
                                                 crop_file,
@@ -250,13 +186,12 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
                                                 man_file,
                                                 soil_file,
                                                 ini_file,
-                                                max_crop_duration,
                                                 sowing_date)) 
     
   }
   
   sim_cycles <- split(params, 1:nrow(params)) %>% 
-    map(., ~runs_cal(., clim_data)) %>%
+    map(., ~runs_cal(.)) %>%
     bind_rows() 
   
   
@@ -268,12 +203,7 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
     #                       unique(sim_cycles$soil_file),
     #                       unique(sim_cycles$irri_file), sep = " - ")
     
-    prm_name <- paste0(unique(sim_cycles$clim_file), "_",
-                       unique(sim_cycles$crop_file), "_",
-                       soil, "_", id2, "_", 
-                       unique(sim_cycles$irri_file)) %>% 
-      str_replace_all(pattern = "[.]+", replacement = "") %>%
-      paste0(., ".PRM")
+    prm_name <- paste0(id_name, ".PRM")
     
     suppressWarnings(dir.create(paste0(path, "/", "LIST")))
     
@@ -294,9 +224,96 @@ write_exp_aquacrop <- function(id_name, sowing_dates, cultivar, soil, clim_data,
                  list(sim_cycles$crop_file, 
                       sim_cycles$irri_file, 
                       sim_cycles$soil_file)),
-      ~write_projects(.x, plugin_path, def_params, soil))
+      ~write_projects(.x, path_proj, def_params, soil_name))
   
   #    toc()
   #25.57 sec elapsed by 1 crop, 
 }
+
+
+
+write_irri_aquacrop <- function(path_proj, irri_name = "irrigated", depletion = 10) {
+  
+  #Net irrigation requirement (allowable depletion 10 % RAW)
+  #   6.1   : AquaCrop Version (May 2018)
+  #   1     : Sprinkler irrigation
+  # 100     : Percentage of soil surface wetted by irrigation
+  #   3     : Determination of Net Irrigation requirement
+  #  20     : Allowable depletion of RAW (%)
+  
+  
+  sink(file = paste(path_proj, paste0(irri_name, ".IRR"), sep = "/"), append = F)
+  cat(paste0("Net irrigation requirement (allowable depletion ", depletion, " % RAW)"))
+  cat('\n')
+  cat("   6.1   : AquaCrop Version (May 2018)", sep = '\n')
+  cat("   1     : Sprinkler irrigation", sep = '\n')
+  cat(" 100     : Percentage of soil surface wetted by irrigation", sep = '\n')
+  cat("   3     : Determination of Net Irrigation requirement", sep = '\n')
+  cat(paste0("  ", depletion, "     : Allowable depletion of RAW (%)"), sep = '\n')
+  sink()   
+  
+  
+  
+}
+
+#write_irri_aquacrop(path_proj, "TESTPAULA", 30)
+
+
+write_man_aquacrop <- function(path_proj, man_agro = "rice", bund_height = 25, mulches = 0,  fert_stress = 7, weeds = 3){
+  
+  #Soil bunds, 0.25 m height
+  #     6.1       : AquaCrop Version (May 2018)
+  #     0         : percentage (%) of ground surface covered by mulches IN growing period
+  #    50         : effect (%) of mulches on reduction of soil evaporation
+  #     7         : Degree of soil fertility stress (%) - Effect is crop specific
+  #     0.25      : height (m) of soil bunds
+  #     1         : surface runoff affected or completely prevented by field surface practices
+  #     0         : N/A (surface runoff is not affected or completely prevented)
+  #     3         : relative cover of weeds at canopy closure (%)
+  #     0         : increase of relative cover of weeds in mid-season (+%)
+  #    -4.00      : shape factor of the CC expansion function in a weed infested field
+  
+  
+  sink(file = paste(path_proj, paste0(man_agro, ".MAN"), sep = "/"), append = F)
+  cat(paste0("Soil bunds, 0.", bund_height, " m height"))
+  cat('\n')
+  cat("     6.1       : AquaCrop Version (May 2018)", sep = '\n')
+  cat(paste0(sprintf("%6.0f", mulches), "         : percentage (%) of ground surface covered by mulches IN growing period"), sep = '\n')
+  cat("    50         : effect (%) of mulches on reduction of soil evaporation", sep = '\n')
+  cat(paste0(sprintf("%6.0f", fert_stress), "         : Degree of soil fertility stress (%) - Effect is crop specific"), sep = '\n')
+  cat(paste0("     0.", bund_height, "      : height (m) of soil bunds"), sep = '\n')
+  cat("     1         : surface runoff affected or completely prevented by field surface practices", sep = '\n')
+  cat("     0         : N/A (surface runoff is not affected or completely prevented)", sep = '\n')
+  cat(paste0(sprintf("%6.0f", weeds), "         : relative cover of weeds at canopy closure (%)"), sep = '\n')
+  cat("     0         : increase of relative cover of weeds in mid-season (+%)", sep = '\n')
+  cat("    -4.00      : shape factor of the CC expansion function in a weed infested field", sep = '\n')
+  sink() 
+  
+}
+
+#write_man_aquacrop(path_proj, "TEST_PAULA")
+
+#write_exp_aquacrop(path_proj, id_name, clim_name, clim_name, cultivar, sowing_date, harvest_date)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

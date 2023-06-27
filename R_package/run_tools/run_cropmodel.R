@@ -155,7 +155,6 @@ run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
   tag <- ifelse(is.null(tag), "", paste0("_", tag))  
   
   # write DSSAT Batch file 
-  id_name <- "CIAT0001"    ### ID for new workflow
   batch_filename <- paste0(dir_run, "/", "DSSBatch.v48")
   xfile <- crop_name_setup(id_name, crop)[["ext"]]
   treatments_number <- length(climate_scenaries)    # number of escenaries
@@ -184,7 +183,7 @@ run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
 
 
 
-run_model_aquacrop <- function(path, crop, id_name, tag = NULL){
+run_model_aquacrop <- function(path, cultivar, exp_set, tag = NULL){
   
   # set dir of simulation
   wd <- getwd()
@@ -194,6 +193,23 @@ run_model_aquacrop <- function(path, crop, id_name, tag = NULL){
   
   ## Write project
   
+  
+  exp_patt <- paste(exp_set, collapse = "|")
+  
+  
+  remove_exp <- list.files(paste0(path, "/LIST"), full.names = T) %>%
+    str_subset(pattern = exp_patt, negate = T)
+  
+  file.remove(remove_exp)
+  
+  
+  message(paste("Simulation Projects ", cultivar, " :"), list.files(paste0(path, "/LIST")))
+  
+  system("ACsaV60.exe")
+  
+  
+  
+
   
   
   
