@@ -141,10 +141,10 @@ write_files_oryza <- function(path_proj, test_data){
 
 #Arguments
 #path_proj <- getwd() %>% paste0("/_AQUACROP")
-test_data <- import_exp_data(path_data, files, cultivar)
+#test_data <- import_exp_data(path_data, files, cultivar)
 #unlink(path_proj, recursive = T)
 
-write_files_aquacrop <- function(path_proj, test_data){
+write_files_aquacrop <- function(path_proj, test_data, cultivar){
   
   
   ### Directorio de salidas (OUTPUTS)
@@ -225,7 +225,7 @@ write_files_aquacrop <- function(path_proj, test_data){
                            id_name = exp_file,
                            clim_name = id_name,
                            soil_name = id_name,
-                           cultivar  = "F2000",
+                           cultivar  = cultivar,
                            sowing_date = PDAT,
                            harvest_date = MDAT,
                            co2_name = "MaunaLoa",
@@ -242,6 +242,8 @@ write_files_aquacrop <- function(path_proj, test_data){
   
   # write agronomic management file
   write_man_aquacrop(path_proj)
+  
+  
   
   
   
@@ -335,7 +337,7 @@ extract_sim_oryza <- function(sim_data, exp_set, variable) {
 }
 
 ### extract from base data
-extract_obs_oryza <- function(obs_data, variable) {
+extract_obs_var <- function(obs_data, variable, model = NULL) {
         
         # vars select shet names required
         vars <- switch(variable, 
@@ -370,7 +372,7 @@ extract_obs_oryza <- function(obs_data, variable) {
         
         
         
-        obs_data <- obs_data %>%
+        obs_data2 <- obs_data %>%
             map(., ~.[[vars]]) %>%
             bind_rows() %>% 
             dplyr::select(-LOC_ID, -CULTIVAR) %>%
@@ -378,8 +380,12 @@ extract_obs_oryza <- function(obs_data, variable) {
             select(-c(LOC_ID, CULTIVAR, PROJECT, TR_N)) 
         
         
+        
+
+        
+        
         op <- switch(variable, 
-                     dry_matter = obs_data %>%
+                     dry_matter = obs_data2 %>%
                          mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>%
                          rename(date = SAMPLING_DATE) %>%
                          select(ID:WAGT_SE, exp_file, -contains("LAI")) %>% 
@@ -388,21 +394,21 @@ extract_obs_oryza <- function(obs_data, variable) {
                          spread(metric, value) %>% 
                          rename(value = OBS, se = SE) %>% 
                          dplyr::select(exp_file, date, var, value, se), 
-                     lai = obs_data %>%
+                     lai = obs_data2 %>%
                          mutate(SAMPLING_DATE =  as.Date(SAMPLING_DATE)) %>% 
                          rename(date=SAMPLING_DATE) %>%
                          select(exp_file, date, contains("LAI")) %>% 
                          mutate(var = "LAI") %>%
                          rename(value=LAI_OBS, se=LAI_SE) %>%
                          dplyr::select(exp_file, date, var, value, se),
-                     yield = obs_data %>%
+                     yield = obs_data2 %>%
                          dplyr::select(exp_file, YIELD_AVG, YIELD_MIN, YIELD_MAX) %>%
                          rename(value = YIELD_AVG, ymin = YIELD_MIN, ymax = YIELD_MAX) %>%
                          mutate(var = "YIELD", diff_min = value - ymin,
                                 diff_max = ymax - value,
                                 se = (diff_max+diff_min)/2) %>%
                          dplyr::select(exp_file, var, value, se),
-                     phen = obs_data %>% 
+                     phen = obs_data2 %>% 
                          dplyr::select(-ID) %>%
                          gather(var, value, -exp_file) %>%
                          mutate(value = as.Date(value)) %>%
@@ -410,6 +416,37 @@ extract_obs_oryza <- function(obs_data, variable) {
                          mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
                          unnest(phen_dae) %>%
                          mutate(value = if_else(var == "MDAT", value - 7 , value)))
+        
+        
+        
+        if(all(variable == "lai", model == "aquacrop")){
+          
+          phen_data <- obs_data %>%
+            map(., ~.[["PHEN_obs"]]) %>%
+            bind_rows() %>% left_join(set) %>% 
+            dplyr::select(exp_file, IDAT, FDAT) %>% mutate(across(contains("DAT"), as.Date))
+          
+          
+  
+          # canopy cover data.frame
+          # Convert CC = 1 - exp(-k*LAI))
+          
+        op <- op %>% na.omit() %>% nest(data = -exp_file) %>% left_join(phen_data) %>%
+            mutate(
+              data = pmap(list(data, IDAT, FDAT), function(a,b,c){
+              a %>% 
+                mutate(
+                  k = case_when(
+                    date <= b ~ 0.4,
+                    date >= c ~ 0.6,
+                    TRUE ~ 0.5),
+                  canopy = (1 - exp(-k*value))*100,
+                  se = (1 - exp(-k*se))*100)})) %>% unnest(data) %>%
+            dplyr::select(exp_file, date, var, value = canopy, se)
+          
+       }
+        
+        
         
         
         return(op)
@@ -497,7 +534,7 @@ eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_va
 }
 
 #vars <- c("phen", "dry_matter", "lai",  "yield")
-#metrics <- map(vars, ~eval_sim_oryza(data, sim_data, cal_set, .x, F)) %>% bind_rows()
+#metrics <- map(vars, ~eval_sim_aquacrop(input_data, sim_data, cal_set, .x, F)) %>% bind_rows()
 #
 #metrics %>% unnest(data) %>% 
 #    mutate(locality = str_sub(exp_file, 1, 4)) %>%
@@ -537,9 +574,139 @@ copy_inputs_aquacrop <- function(path_proj, basedata_path){
   
   
   file.copy(list.files(path_proj, pattern = "CO2", full.names = T), paste0(path_proj, "/SIMUL/"))
+  file.copy(list.files(path_proj, pattern = "DailyResults", full.names = T), paste0(path_proj, "/SIMUL/"))
   
   
 }
 
 #copy_inputs_aquacrop(path_proj, "_AQUACROP/")
+
+## extract_sim_var function to extract simulation data by variable (phen, dry_matter, yield, lai)
+extract_sim_aquacrop <- function(sim_data, exp_set, variable) {
+  
+  vars <- switch(variable, 
+                 dry_matter = c("date", "Stage", "Biomass"), 
+                 lai = c("date", "Stage", "CC" ),
+                 yield = c("date", "Stage", "YieldPart"), 
+                 phen = c("date", "Stage", "DAP"))
+  
+
+  
+  sim_dat <- sim_data %>% map(., ~.x %>% mutate(date = make_date(Year, Month, Day))) %>%
+    map(., ~dplyr::select(., one_of(vars))) %>% #set_names(exp_set) %>%
+    bind_rows(.id = "exp_file") %>% filter(Stage>0) %>%
+    dplyr::filter(exp_file %in% exp_set)
+  
+  
+  date_to_dae <- function(data) {
+    
+    edate <- data %>% filter(Stage == 1) %>% pull(n)
+    
+    data %>% mutate(value = as.numeric(value - edate)) 
+    
+  }
+  
+  sim_select <- switch(variable, 
+                       dry_matter = sim_dat %>% 
+                         mutate(var = "WAGT", value = Biomass*1000) %>%
+                         dplyr::select(exp_file, date, var, value), 
+                       lai = sim_dat %>%
+                         mutate(var = "LAI") %>%
+                         dplyr::select(exp_file, date, var, value = CC),
+                       yield = sim_dat %>%
+                         group_by(exp_file) %>%
+                         summarise(date = max(date), value = max(YieldPart)*1000) %>%
+                         mutate(var = "YIELD") %>%
+                         dplyr::select(exp_file, var, date, value), 
+                       phen = sim_dat %>% group_by(exp_file, Stage) %>% 
+                         dplyr::summarise(n = n(), 
+                                          min_dap = min(DAP),
+                                          max_dap = max(DAP)) %>% ungroup() %>%
+                         mutate(var = case_when(
+                                    Stage == 1 ~ "EDAT",
+                                    Stage == 3 ~ "FDAT",
+                                    Stage == 4  ~ "MDAT"),
+                                value = case_when(
+                                    var == "EDAT" ~ max_dap,
+                                    var == "FDAT" ~ max_dap,
+                                    var == "MDAT" ~ max_dap)
+                                ) %>% 
+                         drop_na() %>% 
+                         nest(data = -exp_file) %>% 
+                         mutate(phen_dae = map(data, ~date_to_dae(.x))) %>%
+                         unnest(phen_dae) %>% dplyr::filter(value>0) %>%
+                         dplyr::select(exp_file, data, var, value))
+  
+  
+  return(dplyr::as_tibble(sim_select))
+  
+  
+}
+
+
+## eval_sim_oryza fucntion to summarise and compute observed vs simulate values
+eval_sim_aquacrop <- function(obs_data, sim_data, exp_set, variable = "phen", by_var = F){
+  
+  sim_ <- extract_sim_aquacrop(sim_data, exp_set, variable = variable)
+
+  obs_ <- extract_obs_var(obs_data, variable = variable, model = "aquacrop") %>% 
+    dplyr::filter(exp_file %in% str_remove(exp_set, ".exp"))
+
+
+id_join <- if(variable == "phen" | variable == "yield"){ 
+  c("exp_file", "var")
+} else {
+  c("exp_file", "var", "date")
+} 
+
+if(variable == "phen"){
+  obs_ <- obs_ %>% dplyr::select(-contains("data"))
+  sim_ <- sim_ %>% dplyr::select(-contains("data"))
+}
+
+
+
+test_select <- obs_ %>%
+  left_join(sim_, by = id_join) %>% 
+  rename_at(vars(ends_with(".x")), list(~paste("obs"))) %>%
+  rename_at(vars(ends_with(".y")), list(~paste("sim"))) %>% 
+  filter(complete.cases(.), obs > 0)
+
+
+if(by_var == TRUE){
+  
+  test_select %>%
+    nest(data = -c(var)) %>% 
+    mutate(eval = map(data, ~get_metrics(.x)),
+           plot = map(data, ~.x %>% 
+                        ggplot(aes(obs, sim)) +
+                        geom_point(aes(color = exp_file)) +
+                        expand_limits(x = 0, y = 0) + 
+                        geom_abline(intercept = 0, slope = 1, linetype = "twodash", linewidth=1)+
+                        geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", linewidth=0.5, color = "red") +
+                        geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", linewidth=0.5, color = "red") + 
+                        #geom_smooth(method = "lm", se=F)+
+                        theme_bw())) %>% 
+    unnest(eval)
+} else {
+  
+  test_select %>%
+    get_metrics %>% 
+    mutate(var  = variable,
+           plot = list(test_select%>% 
+                         ggplot(aes(obs, sim)) +
+                         geom_point(aes(color = exp_file)) +
+                         expand_limits(x = 0, y = 0) + 
+                         geom_abline(intercept = 0, slope = 1, linetype = "twodash", linewidth=1)+
+                         geom_abline(intercept = 0, slope = 1.15, linetype = "twodash", linewidth=0.5, color = "red") +
+                         geom_abline(intercept = 0, slope = 0.85, linetype = "twodash", linewidth=0.5, color = "red") + 
+                         #geom_smooth(method = "lm", se=F)+
+                         theme_bw())) %>% 
+    dplyr::select(var, everything())
+  
+}
+
+
+
+}
 
