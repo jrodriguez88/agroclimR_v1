@@ -114,7 +114,7 @@ get_params_aquacrop <- function(test_data, exp_set, tbase = 8, stat = "mean"){
   
   ## Test data 
   test_data2 <- data_param_aquacrop %>% 
-    mutate(phen_params = map2(phen, wth, cal_phen_aquacrop),
+    mutate(phen_params = map2(phen, wth, cal_phenol_aquacrop),
            canopy_params = pmap(list(wth_data = wth, phen_data = phen, lai_data = lai),  safe_canopy_params))
   
   ## Phen Params
@@ -244,7 +244,7 @@ bootstrap_param <- function(param_data, reps = 2000, ci = 0.95, stat = "mean"){
 #wth_data <-  data_param_aquacrop$wth[[10]] 
 #phen_data <- data_param_aquacrop$phen[[10]]
 
-cal_phen_aquacrop <- function(phen_data, wth_data, tbase = 8, Fleng = 10){
+cal_phenol_aquacrop <- function(phen_data, wth_data, tbase = 8, Fleng = 10){
   
   
   

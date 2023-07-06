@@ -95,8 +95,10 @@ cal_phen_aquacrop <- function(x1, x2, x3, x4, x5, x6, x7, params_to_cal, calibra
       x[44] <- paste0(cultivar2, ".CRO")
       x})
   
+  exp_names <- paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM") %>%
+                        str_subset(pattern = paste(exp_files, collapse = "|")))
   
-  map2(.x = paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM")), .y = projects, .f = function(a,b){
+  map2(.x = exp_names, .y = projects, .f = function(a,b){
     sink(file = a,  append = F)
     writeLines(b)
     sink()}
@@ -213,8 +215,10 @@ cal_growth_aquacrop <- function(x1, x2, x3, x4, x5, x6, params_to_cal, phen_para
       x[44] <- paste0(cultivar2, ".CRO")
       x})
   
+  exp_names <- paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM") %>%
+                        str_subset(pattern = paste(exp_files, collapse = "|")))
   
-  map2(.x = paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM")), .y = projects, .f = function(a,b){
+  map2(.x = exp_names, .y = projects, .f = function(a,b){
     sink(file = a,  append = F)
     writeLines(b)
     sink()}
@@ -297,7 +301,7 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
   
   id_run <- as.integer(runif(1) * 10000000)
   dir_run <- make_dir_run(calibration_path, id_run)
-  cultivar <- paste0(cultivar, id_run)
+  cultivar2 <- paste0(cultivar, id_run)
   copy_inputs_aquacrop(dir_run, basedata_path)
   
   
@@ -317,8 +321,10 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
       x[44] <- paste0(cultivar2, ".CRO")
       x})
   
+  exp_names <- paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM") %>%
+                        str_subset(pattern = paste(exp_files, collapse = "|")))
   
-  map2(.x = paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM")), .y = projects, .f = function(a,b){
+  map2(.x = exp_names, .y = projects, .f = function(a,b){
     sink(file = a,  append = F)
     writeLines(b)
     sink()}
@@ -411,7 +417,7 @@ cal_aquacrop_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x1
   
   id_run <- as.integer(runif(1) * 10000000)
   dir_run <- make_dir_run(calibration_path, id_run)
-  cultivar <- paste0(cultivar, id_run)
+  cultivar2 <- paste0(cultivar, id_run)
   copy_inputs_aquacrop(dir_run, basedata_path)
   
   
@@ -431,8 +437,10 @@ cal_aquacrop_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x1
       x[44] <- paste0(cultivar2, ".CRO")
       x})
   
+  exp_names <- paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM") %>%
+                        str_subset(pattern = paste(exp_files, collapse = "|")))
   
-  map2(.x = paste0(list_run, list.files(paste0(calibration_path, "/LIST"), pattern = "PRM")), .y = projects, .f = function(a,b){
+  map2(.x = exp_names, .y = projects, .f = function(a,b){
     sink(file = a,  append = F)
     writeLines(b)
     sink()}
@@ -1150,7 +1158,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
 #calibration_aquacrop_GA(calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path, 
 #                        cal_stages = c("phen", "dry_matter_lai", "yield", "global"), 
 #                        pop_iter = c(10, 3),  res_var = c("yield"), ncores = 4)
-#
+
 
 
 
