@@ -423,7 +423,7 @@ extract_obs_var <- function(obs_data, variable, model = NULL) {
           
           phen_data <- obs_data %>%
             map(., ~.[["PHEN_obs"]]) %>%
-            bind_rows() %>% left_join(set) %>% 
+            bind_rows() %>% left_join(set, by = join_by(ID, LOC_ID, CULTIVAR)) %>% 
             dplyr::select(exp_file, IDAT, FDAT) %>% mutate(across(contains("DAT"), as.Date))
           
           
@@ -431,7 +431,7 @@ extract_obs_var <- function(obs_data, variable, model = NULL) {
           # canopy cover data.frame
           # Convert CC = 1 - exp(-k*LAI))
           
-        op <- op %>% na.omit() %>% nest(data = -exp_file) %>% left_join(phen_data) %>%
+        op <- op %>% na.omit() %>% nest(data = -exp_file) %>% left_join(phen_data, by = join_by(exp_file)) %>%
             mutate(
               data = pmap(list(data, IDAT, FDAT), function(a,b,c){
               a %>% 
@@ -615,13 +615,13 @@ extract_sim_aquacrop <- function(sim_data, exp_set, variable) {
                          dplyr::select(exp_file, date, var, value = CC),
                        yield = sim_dat %>%
                          group_by(exp_file) %>%
-                         summarise(date = max(date), value = max(YieldPart)*1000) %>%
+                         summarise(date = max(date), value = max(YieldPart)*1000, .groups = 'drop')  %>%
                          mutate(var = "YIELD") %>%
                          dplyr::select(exp_file, var, date, value), 
                        phen = sim_dat %>% group_by(exp_file, Stage) %>% 
                          dplyr::summarise(n = n(), 
                                           min_dap = min(DAP),
-                                          max_dap = max(DAP)) %>% ungroup() %>%
+                                          max_dap = max(DAP), .groups = 'drop') %>%
                          mutate(var = case_when(
                                     Stage == 1 ~ "EDAT",
                                     Stage == 3 ~ "FDAT",

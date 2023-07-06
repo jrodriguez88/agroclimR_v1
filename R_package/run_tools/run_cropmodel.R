@@ -183,7 +183,7 @@ run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
 
 
 
-run_model_aquacrop <- function(path, cultivar, exp_set, tag = NULL){
+run_model_aquacrop <- function(path, cultivar, exp_set, tag = NULL, timeout = 60){
   
   # set dir of simulation
   wd <- getwd()
@@ -203,9 +203,9 @@ run_model_aquacrop <- function(path, cultivar, exp_set, tag = NULL){
   file.remove(remove_exp)
   
   
-  message(paste("Simulation Projects ", cultivar, " :"), list.files(paste0(path, "/LIST")))
+#  message(paste("Simulation Projects ", cultivar, " :", path))
   
-  system("ACsaV60.exe")
+  system("ACsaV60.exe", timeout = timeout)
   
   
   
