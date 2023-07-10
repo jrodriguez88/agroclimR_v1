@@ -73,7 +73,7 @@ write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sld
            any(c("clay", "CLAY", "C", "SLCL") %in%  var_names) &
            any(c("sand", "SAND", "S", "silt", "SILT", "SLSI", "Si") %in%  var_names) &
            any(c("sbdm", "SBDM", "BD") %in% var_names) &
-           any(c("soc", "SOC", "OM") %in% var_names))){
+           any(c("soc", "SOC", "OM", "SLOC") %in% var_names))){
       
       message("Minimun data are available")
       
@@ -95,7 +95,7 @@ write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sld
                             SSKS > 250 ~ 65)) %>% pull(CN)
     
     
-    list(soil_data, CN)
+    list(soil_data, CN, lat = -99, lon = -99)
     
     
   }
@@ -195,10 +195,11 @@ else if(all(exists("idsoilAR"), idsoilAR==1)){
 
 #cat(paste0("!AgroclimR DSSAT Soil: ",  id_name, " - by https://github.com/jrodriguez88/agroclimR"), sep = "\n")
 #cat("\n")
-cat(sprintf("%11s %10s %4s %7s %1s",id_acjr, " SoilGridsV2", texture , max_depth,  paste0(" AgroClimR ", id_name)))
+cat(sprintf("%11s %10s %4s %7s %1s",id_acjr, " AgroclimRV1", texture , max_depth,  paste0(" AgroClimR ", id_name)))
 cat("\n")
 cat(c("@SITE        COUNTRY          LAT     LONG SCS FAMILY"), sep = "\n")
-cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
+#cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
+cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", -99, -99 , paste0("USDA Texture: ", stc[[1]])))
 cat("\n")
 cat(c('@ SCOM  SALB  SLU1  SLDR  SLRO  SLNF  SLPF  SMHB  SMPX  SMKE'))
 cat("\n")
@@ -221,8 +222,8 @@ sink()
 
 # SoilGrids data
 
-soil_data <- soilgrids_data %>% soilgrids_to_dssat()
-write_soil_dssat("C:/DSSAT47/Soil/", "JR", soil_data, multi = F)
+#soil_data <- soilgrids_data %>% soilgrids_to_dssat()
+#write_soil_dssat("C:/DSSAT47/Soil/", "JR", soil_data, multi = F)
 
 
 

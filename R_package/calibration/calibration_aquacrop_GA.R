@@ -43,13 +43,13 @@ copy_inputs_aquacrop <- function(path_proj, basedata_path){
 
 
 ## Aquacrop Phenological parameters
-#x1 <- 150  #"GDD_emergence"
-#x2 <- 800   #GDD_CCx
-#x3 <- 1150     #"GDD_FL"
-#x4 <- 350  #"GDD_FLL"
-#x5 <- 1900   #"GDD_M"
-#x6 <- 1700  #GDD_senecence
-#x7 <- 500  #GDD_HI
+x1 <- 150  #"GDD_emergence"
+x2 <- 800   #GDD_CCx
+x3 <- 1150     #"GDD_FL"
+x4 <- 350  #"GDD_FLL"
+x5 <- 1900   #"GDD_M"
+x6 <- 1700  #GDD_senecence
+x7 <- 500  #GDD_HI
 #
 #params_to_cal <- test_params_model %>% filter(str_detect(Parameter, phen_pattern))
 #
@@ -84,7 +84,7 @@ cal_phen_aquacrop <- function(x1, x2, x3, x4, x5, x6, x7, params_to_cal, calibra
   
   list_run <- paste0(dir_run, "/LIST/")
   
-  dir.create(list_run)
+#  dir.create(list_run)
   
  # file.copy(filesX, paste0(dir_run, "/LIST/"))
   
@@ -131,7 +131,7 @@ cal_phen_aquacrop <- function(x1, x2, x3, x4, x5, x6, x7, params_to_cal, calibra
   #map(files_remove, ~unlink(.x, recursive = T))
   
   unlink(dir_run, recursive = T)
-  
+  file.remove(paste0(calibration_path, cultivar2, ".CRO"))
   
   
   return(mean(metrics_cal$NRMSE))
@@ -255,7 +255,7 @@ cal_growth_aquacrop <- function(x1, x2, x3, x4, x5, x6, params_to_cal, phen_para
   #map(files_remove, ~unlink(.x, recursive = T))
   
   unlink(dir_run, recursive = T)
-  
+  file.remove(paste0(calibration_path, cultivar2, ".CRO"))
   
   
   return(mean(metrics_cal$NRMSE))
@@ -361,7 +361,7 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
   #map(files_remove, ~unlink(.x, recursive = T))
   
   unlink(dir_run, recursive = T)
-  
+  file.remove(paste0(calibration_path, cultivar2, ".CRO"))
   
   
   return(mean(metrics_cal$NRMSE))
@@ -476,7 +476,7 @@ cal_aquacrop_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x1
   #map(files_remove, ~unlink(.x, recursive = T))
   
   unlink(dir_run, recursive = T)
-  
+  file.remove(paste0(calibration_path, cultivar2, ".CRO"))
   
   
   return(mean(metrics_cal$NRMSE))
@@ -578,7 +578,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     #closeAllConnections()
     message("GA - Global calibration done!")
     
-    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
+#    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
     return(list(params = global_params, GA_global = GA_aquacrop))
     
     message("Parameter Optimization Done!")
@@ -592,9 +592,9 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     
     # plan(multiprocess)
-    registerDoFuture()
-    cl <- makeCluster(4)
-    plan(future::cluster, workers = cl)
+    #registerDoFuture()
+    #cl <- makeCluster(ncores)
+    #plan(future::cluster, workers = cl)
     
     low_minp <- phen_to_cal$Min %>% unlist()
     upp_maxp <- phen_to_cal$Max %>% unlist()
@@ -629,7 +629,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     
  #   closeAllConnections()
-    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
+   # file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
     return(list(params = phen_params, GA_phen = GA_phen))
     
     
@@ -668,7 +668,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     toc()
     
     
- #   closeAllConnections()
+    closeAllConnections()
     gc()
     
     phen_params <<- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
@@ -677,7 +677,10 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     message("GA - Phenology done!")
     
-    
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
     
@@ -713,6 +716,8 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_yield@solution
     toc()
     
+    
+    closeAllConnections()
     gc()
     
     yield_params <<- as.data.frame(GA_yield@solution) %>% sample_n(1) %>%
@@ -724,9 +729,9 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     phen_yield_params <- bind_rows(phen_params, yield_params) # %>% deframe()
     
-    closeAllConnections()
     
-    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
+    
+  #  file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
     
     return(list(params = phen_yield_params, GA_phen = GA_phen, GA_yield = GA_yield))
     
@@ -770,7 +775,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     toc()
     
     
-    #   closeAllConnections()
+    closeAllConnections()
     gc()
     
     phen_params <<- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
@@ -779,7 +784,10 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     message("GA - Phenology done!")
     
-    
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
     ### all parameters of aquacrop
@@ -812,7 +820,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_aquacrop@solution
     toc()
     
-    #   closeAllConnections()
+    closeAllConnections()
     gc()
     
     
@@ -820,7 +828,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
       pivot_longer(cols = everything(), values_to = "Set_cal", names_to = "Parameter") %>%
       mutate(Set_cal =  map(Set_cal, ~.x))
     
-    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
+ #   file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
     
     return(list(params = global_params, GA_phen = GA_phen, GA_global = GA_aquacrop))
     
@@ -864,7 +872,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     toc()
     
     
- #   closeAllConnections()
+    closeAllConnections()
     gc()
     
     phen_params <<- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
@@ -873,6 +881,10 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     message("GA - Phenology done!")
     
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     growth_to_cal <- test_params_model %>% 
       dplyr::filter(str_detect(Parameter, growth_pattern), str_detect(Parameter, "GDD", negate=T))
@@ -902,7 +914,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_growth@solution
     toc()
     
-    
+    closeAllConnections()
     gc()
     
     ### Organiza parametros de GA para continuar proceso de calibracion 
@@ -912,6 +924,11 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
       mutate(Set_cal =  map(Set_cal, ~.x))
     
     message("GA - Growth done!")
+    
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
     
@@ -942,6 +959,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_yield@solution
     toc()
     
+    closeAllConnections()
     gc()
     
     yield_params <<- as.data.frame(GA_yield@solution) %>% sample_n(1) %>%
@@ -951,7 +969,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     #    load("calibracion_rendimiento_test.RData")
     
     
-    closeAllConnections()
+    #closeAllConnections()
     
     params_f <- bind_rows(phen_params, growth_params, yield_params)
     message("GA - Yield done!")
@@ -960,7 +978,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     message("Parameter Optimization Done!")
     
-    file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
+  #  file.remove(list.files(calibration_path, pattern = ".CRO", full.names = T))
     
     return(list(params = params_f, 
                 GA_phen = GA_phen, GA_growth = GA_growth, GA_yield = GA_yield))
@@ -979,7 +997,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
             ")
     
     
-    tictoc::tic()
+    #tictoc::tic()
     phen_to_cal <- test_params_model %>% dplyr::filter(str_detect(Parameter, phen_pattern))
     
     low_minp <- phen_to_cal$Min %>% unlist()
@@ -1004,7 +1022,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     toc()
     
     
- #   closeAllConnections()
+    closeAllConnections()
     gc()
     
     phen_params <<- as.data.frame(GA_phen@solution) %>% sample_n(1) %>%
@@ -1012,6 +1030,11 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
       mutate(Set_cal =  map(Set_cal, ~.x))
     
     message("GA - Phenology done!")
+    
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
     growth_to_cal <- test_params_model %>% 
@@ -1042,7 +1065,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_growth@solution
     toc()
     
-    
+    closeAllConnections()
     gc()
     
     ### Organiza parametros de GA para continuar proceso de calibracion 
@@ -1052,6 +1075,11 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
       mutate(Set_cal =  map(Set_cal, ~.x))
     
     message("GA - Growth done!")
+    
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
     
@@ -1082,6 +1110,7 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     GA_yield@solution
     toc()
     
+    closeAllConnections()
     gc()
     
     yield_params <<- as.data.frame(GA_yield@solution) %>% sample_n(1) %>%
@@ -1095,9 +1124,15 @@ calibration_aquacrop_GA <- function(calibration_path, cultivar, input_data, exp_
     
     message("GA - Yield done!")
     
+    # plan(multiprocess)
+    registerDoFuture()
+    cl <- makeCluster(ncores)
+    plan(future::cluster, workers = cl)
     
     
-    global_to_cal <-  tidy_to_write_crop(params_f)
+    
+    global_to_cal <-  params_f %>% 
+      right_join(test_params_model, by = "Parameter") 
     # growth_params <- test_params_model %>% filter(str_detect(Parameter, growth_pattern)) %>% 
     #   dplyr::select(Parameter, Set_cal = Base)
 

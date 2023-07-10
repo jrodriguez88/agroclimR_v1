@@ -153,7 +153,7 @@ soilgrids_to_dssat <- function(soilgrids_data) {
 #    source("https://raw.githubusercontent.com/jrodriguez88/csmt/master/utils/soil_PTF.R", encoding = "UTF-8")
     
     
-    ## transform data to aquacrop dssat format
+    ## transform data to dssat format
     data_inp <- suppressMessages(soilgrids_data %>% unnest(data) %>% 
         dplyr::select(var, range, label, values) %>% flatten() %>%
         #    set_names(c("var", "tdepth","bdepth", "unit", "label", "value")) %>%
