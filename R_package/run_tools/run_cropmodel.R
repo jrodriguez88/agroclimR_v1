@@ -16,6 +16,10 @@
 ##cal_set <- sample(exp_files, length(exp_files)*0.7)    
 ##eval_set <- setdiff(exp_files, cal_set)
 
+
+
+
+#Execute ORYZA  "ORYZA3.exe"
 run_model_oryza <- function(path, cultivar, exp_set, tag = NULL) { 
   
   
@@ -108,71 +112,73 @@ IFLAG  = 1100  ! Indicates where weather error and warnings
 #run_ORYZA(path, cultivar, cal_set)
 
 
-
-
-
-
 #Executes the model depending on OS
 # dir_run <- Carpeta con todos los inputs necesarios para simulacion con DSSAT 
 # Para windows, el ejecutable V4.8 "DSCSM048.EXE" debe estar instalado o dispnible en "C:/DSSAT48/DSCSM048.EXE 
 # Para windows tener imagen de dssat 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #Test DSSAT
+# Crea archivo batch en el directorio especifico de la simulacion
+write_batch_dssat <- function(crop, exp_set, filename = "DSSBatch.v48"){
+  
+  #treatments_number <- length(exp_set)
+  
+  
+  batchfile <- rbind(
+    rbind(
+      # Batchfile headers            
+      paste0("$BATCH(", toupper(crop), ")"),            
+      "!",            
+      cbind(sprintf("%6s %89s %6s %6s %6s %6s", "@FILEX", "TRTNO", "RP", "SQ", "OP", 
+                    "CO"))),            
+    cbind(sprintf("%6s %83s %6i %6i %6i %6i",            
+                  paste0(exp_set),
+                  1:1,  # Variable for treatment number            
+                  1,  # Default value for RP element            
+                  0,  # Default value for SQ element            
+                  1,  # Default value for OP element            
+                  0)))  # Default value for CO element 
+  
+  # Write the batch file to the selected folder  
+  write(batchfile, file = filename, append = F)
+  
+  
+  
+}
 
-
-
-
-run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
+# Execute DSSAT DSCSM048.EXE
+run_model_dssat <- function(path, crop, exp_set, dssat_exe = "C:/DSSAT48/", tag = NULL){
   
   # set dir of simulation
   wd <- getwd()
   setwd(path)
   
-  tag <- ifelse(is.null(tag), "", paste0("_", tag))  
+  #tag <- ifelse(is.null(tag), "", paste0("_", tag))  
   
   # write DSSAT Batch file 
-  batch_filename <- paste0(dir_run, "/", "DSSBatch.v48")
-  xfile <- crop_name_setup(id_name, crop)[["ext"]]
-  treatments_number <- length(climate_scenaries)    # number of escenaries
+  batch_filename <- paste0(path, "/", "DSSBatch.v48")
+  
+  xfile <- map(exp_set, ~crop_name_setup(.x, crop)) %>% map_chr("ext")
+  
+  #treatments_number <- length(exp_set)    # number of escenaries
+  
+  write_batch_dssat(crop, xfile, batch_filename)
   
   
   
-  # run oryza - OS
-  print(paste('Simulation: ', path, " - ", crop))
   
-  if (Sys.info()['sysname'] == 'Windows'){ 
+  # run DSSAT - OS
+#  print(paste('Simulation: ', path, " - ", crop))
+  
+#  if (Sys.info()['sysname'] == 'Windows'){ 
     
-    model <- paste0(crop_name_setup(id_name, crop)[["model"]], 048) 
-    system(paste0("C:/DSSAT48/DSCSM048.EXE " , model," B ", "DSSBatch.v48"), ignore.stdout = F, show.output.on.console = T)
-  }
-  else{
-    system(paste0('dssat ',  path,' B DSSBatch.v48'))
+    model <- paste0(crop_name_setup("CIAT0001", crop)[["model"]], 048) 
+    system(paste0(dssat_exe, "DSCSM048.EXE " , model," B ", "DSSBatch.v48"), ignore.stdout = F, show.output.on.console = T)
+#  }
+#  else{
+#    system(paste0('dssat ',  path,' B DSSBatch.v48'))
     
-  }
+#  }
   
   
   setwd(wd)
@@ -182,14 +188,14 @@ run_model_dssat <- function(path, crop, id_name = "CIAT0001", tag = NULL){
 
 
 
-
+# Execute AQUACROP "ACsaV60.exe"
 run_model_aquacrop <- function(path, cultivar, exp_set, tag = NULL, timeout = 60){
   
   # set dir of simulation
   wd <- getwd()
   setwd(path)
   
-  tag <- ifelse(is.null(tag), "", paste0("_", tag))  
+#  tag <- ifelse(is.null(tag), "", paste0("_", tag))  
   
   ## Write project
   

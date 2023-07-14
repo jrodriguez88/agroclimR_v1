@@ -233,74 +233,10 @@ make_dir_run <- function(dir_run_main, id_run){
 }
 
 
-# Funcion copia inputs base en directorio de simulacion de cada setups
-copy_inputs <- function(dir_inputs_setup, dir_inputs_soil, dir_inputs_cultivar, crop, dir_run){
-  
-  CR <- tibble(
-    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
-    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF")) %>% filter(crop_name==crop)%>%
-    pull(CR)
-  
-  
-  gen_files <- list.files(dir_inputs_cultivar, full.names = T, pattern = "ECO|SPE|CUL") %>%
-    str_subset(CR)
-  
-  
-  setting_files <- list.files(dir_inputs_setup, full.names = T, pattern = "csv")
-  
-  soil_files <- list.files(dir_inputs_soil, full.names = T, pattern = ".SOL$")
-  
-  
-  #  dir_files <- list.files(dir_inputs, full.names = T)
-  file.copy(c(gen_files, setting_files, soil_files), dir_run)
-  
-  #  map2(.x = c("*.SPE", "*.ECO", "*.CUL"), 
-  #       .y = paste0("standard", c("*.SPE", "*.ECO", "*.CUL")), 
-  #       ~file.rename(
-  #         from = list.files(dir_run, pattern = .x, full.names = T), 
-  #         to = paste0(dir_run, .y)))
-  
-  
-}
 
 
-# Lee informacion de geolocalizacion
-# puede agregarse en un solo archivo - setups
-load_settings <- function(dir_run){
-  
-  frame_list <- function(data){
-    
-    setNames(split(data[,2], seq(nrow(data))), data[,1])
-    
-  }
-  
-  
-  print(paste0("dir_inputs_run: ", dir_run))
-  #  require(readr)
-  coordenadas <- read_csv(paste0(dir_run,'coordenadas.csv'), show_col_types = F) %>%
-    as.data.frame() %>%
-    frame_list()
-  
-}
 
 
-# Function to write Crop names/model/extension into DSSAT format
-crop_name_setup <- function(id_name, crop){
-  
-  base_tb <- tibble(
-    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
-    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF"),
-    model = c(paste0(c("RI", "MZ", "BA", "SG", "WH"), "CER"), rep("CRGRO", 2), "TFAPS"))
-  
-  cul <- base_tb %>% 
-    dplyr::filter(crop_name %in% all_of(crop)) %>%
-    mutate(crop_name =  toupper(crop_name),
-           ext = paste0(id_name, ".", CR, "X"))
-  
-  return(cul)
-  
-  
-}
 
 
 

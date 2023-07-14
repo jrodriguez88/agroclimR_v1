@@ -1,19 +1,13 @@
 # Script to read Outputs files of DSSAT model
-# Author: Rodriguez-Espinoza J.
+# Author: Rodriguez-Espinoza J. Mesa-Diez J.
 # Repository: https://github.com/jrodriguez88/
 # 2023
-
-
-
-
-
 
 #library(data.table)
 #library(tidyverse)
 
 
-
-
+## Read "Evaluate.OUT" file
 read_evaluate <- function(file){
   
   suppressMessages(suppressWarnings(read_table(file, skip = 2, col_types = cols())))
@@ -21,8 +15,7 @@ read_evaluate <- function(file){
   
 }
 
-# SDAT PDAT    EDAT    ADAT    MDAT    HDAT
-
+## Read "Summary.OUT" file
 read_summary <- function(file){
   
   summary_out <- suppressWarnings(read_table(file, skip = 3 , na = "*******",
@@ -45,54 +38,55 @@ read_summary <- function(file){
 }
 
 
-
-
-
-
-read_plant_out <- function(file) {
+## Read PlantGro.OUT file
+read_plantgro <- function(file) {
   
-  # file <- paste0(path, plant_grout_out)
-  # skip <- 12
-  fread_by_skip <- function(file, skip){
+  # Read PlanstGro.OUT lines
+  plangro_raw <- read_lines(file)
+  
+
+ # detect start data.frame
+  skip <- plangro_raw  %>% str_detect("@YEAR") %>% which()-1 
+  
+  # experimental names 
+  exp_names <- plangro_raw %>% 
+    str_subset(fixed("EXPERIMENT")) %>% 
+    map_chr(~str_split(., " ") %>% unlist() %>% pluck(-1))
+  
+ # id_name <- plantgro_raw %>% 
+ #   str_subset(fixed("EXPERIMENT")) %>% 
+ #   map_chr(~str_split(., " ") %>% unlist() %>% pluck(8))
+  
+
+  data_plangro <- suppressWarnings(map(skip, ~fread(file, skip = .x))) %>% 
+    set_names(exp_names) %>%
+    map(., ~mutate(.,date = lubridate::make_date(`@YEAR`)+DOY-1)) %>% 
+    bind_rows(.id = "exp_file")
+  
+  
+  return(data_plangro)
     
-    options(warn = -1)
-    fread(file, skip = skip, stringsAsFactors = F, na.strings = "NaN", header = T, sep = " ", showProgress = T) %>%
-      tbl_df
-    # mutate(`@YEAR` = as.character(`@YEAR`))
+}
+
+
+## read weather dssat - "Weather.OUT" file
+read_wth <- function(dir_run){
+  
+  
+  file <- paste0(dir_run, "Weather.OUT")
+  skip <- read_lines(file)  %>% str_detect("@YEAR") %>% which()-1 
+  
+  cal_summ <- function(data){
+    
+    data %>% tibble %>% mutate(across(.fns = as.numeric)) %>%
+      summarise(t_max_acu = sum(TMXD), t_min_acu = sum(TMND), srad_acu = sum(SRAD))
+    
   }
   
-  # make function that extract number of treatment
-  
-  ## now read the treatment 
-  lplant_grout <- read_lines(file)
-  
-  ## treatment data frame (and show how many treatments is there)
-  tn_df <- lplant_grout %>%
-    str_subset('TREATMENT') %>%
-    str_extract("TREATMENT\\s+([[:alnum:]]+)") %>%
-    data_frame(TN = .) %>%
-    separate(TN, into = c("Treatment", "TRNO"),  sep = "\\s+") %>%
-    mutate(RUN = 1:length(Treatment), 
-           TRNO = as.factor(TRNO))
+  data_wth <- suppressWarnings(map(skip, ~fread(file, skip = .x))) #%>% 
+ #   map(cal_summ)
   
   
-  ## number of treatments
-  run <- str_which(lplant_grout, 'TREATMENT') + 3 
-  
-  ## make data frame which contain line to read in plantgro.out
-  
-  tn_df <- tn_df %>%
-    mutate(files = rep(file, length(RUN))) %>%
-    bind_cols(data_frame(line= run))
-  
-  plant_grout_df <- tn_df %>%
-    mutate(data = map2(files, run, fread_by_skip))  %>%
-    unnest %>%
-    mutate(DOY = as.factor(DOY)) %>%
-    mutate(TRNO = as.factor(TRNO)) %>%
-    rename(YEAR = `@YEAR`)
-  
-  
-  return(plant_grout_df)
+  data_wth %>% bind_rows(.id = "scenario")
   
 }

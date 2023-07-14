@@ -34,15 +34,15 @@
 
 
 ### Function to read season project output
-read_aquacrop_season <- function(file, path){
+read_aquacrop_season <- function(file){
   
-  names <- read_lines(paste0(path, file))[[3]] %>%
+  names <- read_lines(file)[[3]] %>%
     str_trim() %>%
     str_split(pattern = "[ ]+") %>%
     flatten_chr() %>% 
     c(., "File")
   
-  data <- fread(paste0(path, file), skip = 4) %>%
+  data <- fread(file, skip = 4) %>%
     setNames(names)
   
   return(data)
@@ -51,11 +51,11 @@ read_aquacrop_season <- function(file, path){
 #data_season <- read_aquacrop_season(season_files, path)
 
 ### Function to read daily project output
-read_aquacrop_day <- function(file, path){
+read_aquacrop_day <- function(file){
   
-  day_file <- read_lines(paste0(path, file))
+  day_file <- read_lines(file)
   
-  var_names <- read_lines(paste0(path, file))[[4]] %>% 
+  var_names <- read_lines(file)[[4]] %>% 
     str_replace_all("(?<=[[:alpha:]]) (?=\\d+)", "") %>% 
     str_trim() %>%
     str_split(pattern = "[ ]+") %>%
@@ -67,7 +67,7 @@ read_aquacrop_day <- function(file, path){
   
   nlines <- c(find_run[-1], length(day_file))-find_run-2
   
-  arg_list <- list(file= paste0(path, file),
+  arg_list <- list(file= file,
                    skip = find_run, 
                    nrows = nlines)
   

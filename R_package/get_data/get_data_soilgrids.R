@@ -117,7 +117,7 @@ soilgrids_to_aquacrop <- function(soilgrids_data) {
                WCFC = WCFC_Saxton(sand, clay, OM),
                WCST = WCST_Saxton(bdod),
                WCWP = WCWP_Saxton(sand, clay, OM),
-               SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))*24,   #multimodel bootstrapping
+               SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), SSKS_cal)*24,   #multimodel bootstrapping + from mm/h to  mm/day
                STC = get_STC(sand, clay),
                CRa = case_when(str_detect(STC, "Sa|LoSa|SaLo") ~ (-0.3112 - SSKS*10^(-5)),
                                str_detect(STC, "Lo|SiLo|Si") ~ (-0.4986 + SSKS*9*10^(-5)),
@@ -167,7 +167,7 @@ soilgrids_to_dssat <- function(soilgrids_data) {
                SDUL = WCFC_Saxton(sand, clay, OM)/100,
                SSAT = WCST_Saxton(SBDM)/100,
                SLLL = WCWP_Saxton(sand, clay, OM)/100,
-               SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), ~SSKS_cal(sand, clay, OM, SBDM))/10,   #multimodel bootstrapping
+               SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), SSKS_cal)/10,   #multimodel bootstrapping + from mm/h to  cm/h
                STC = get_STC(sand, clay)) %>% 
         rename(SLCF = cfvo, SCEC  = cec, SLCL = clay, SLHW = phh2o, SLSI = silt ) %>% 
         dplyr::select(-c(label:bdod, nitrogen, soc, sand))) 
@@ -208,8 +208,7 @@ soilgrids_to_oryza <- function(soilgrids_data, sn = c(3,50,50)) {
                                             WCWP = WCWP_Saxton(sand, clay, OM),
                                             GWCFC = WCFC/SBDM,
                                             WCAD = WCR_Tomasella(sand, clay, GWCFC),
-                                            SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), 
-                                                            ~SSKS_cal(sand, clay, OM, SBDM))*2.4,   #Method developed by Suleiman and Ritchie (2001) and others
+                                            SSKS = pmap_dbl(.l = list(sand, clay, OM, SBDM), SSKS_cal)*2.4,   #multimodel bootstrapping + from mm/h to  cm/day
                                             STC = get_STC(sand, clay)) %>% 
                                      rename(SAND = sand, CLAY = clay, SLHW = phh2o, SILT = silt ) %>% 
                                      dplyr::select(-c(label:bdod, nitrogen, soc)))

@@ -1,153 +1,36 @@
-#### Function to make/write Experimental file (X file) for DSSAT model
-# Author: Rodriguez-Espinoza J.
-# Reporead_tsv(clipboard()) %>% pivot_wider(name)sitory: https://github.com/jrodriguez88/
-# 2021
-
-# load libraies
-
-#library(tidyverse)
+### Functions to make/write Experimental file (X file) for DSSAT model
+# Author: Rodriguez-Espinoza J. Mesa-Diez J.
+# https://github.com/jrodriguez88/
+# 2022
 
 
-planting_details <- tibble(name = c(), value = c())
-
-planting_details <- read_tsv(clipboard()) %>% pivot_wider(names_from = name)
-#add FERT switch
-
-crop <- "wheat"
-path <- "inputs/setups/test_wheat/"
-id_name <- "CIAT0001"
-cultivar <- "Yecora_Rojo"
-soil <- "IB00000004"
-wth_station <- "CIAT0001"
-irri = F
-fert_in = NULL
-start_date <- input_dates$DATE[[1]]
-planting_date <- input_dates$DATE[[1]]
-emergence_date = NULL
-treatments_number <- length(wth_station)
-
-# Write Fertilizer table
-create_fert_dssat <- function(urea, dap, apps_dap = c(1, 40), urea_split = c(1/3, 2/3), dap_split = c(1, 0)){
-  
-  #dap = Days after Planting
-  #"dap" = Diammonium phosphate (DAP)  
-  dap_f <- dap
-  
-  base_tb <- bind_rows(tibble(dap = apps_dap, fert = "dap", value = dap_f * dap_split) %>% 
-                         dplyr::filter(value > 0),
-                       tibble(dap = apps_dap, fert= "urea", value = urea * urea_split) %>% 
-                         dplyr::filter(value > 0)) 
-  
-  
-  
-  fert_to_N <-function(fert, amount){
-    
-    if(fert == "dap"){
-      N = amount*0.18
-    } else if(fert == "urea"){
-      N = amount*0.46
-    } else {
-      message("No detected Fertilizer")
-      N = -99
-    }
-    
-    return(N)
-  }
-  
-  fert_to_P <-function(fert, amount){
-    
-    if(fert == "dap"){
-      P = amount*0.46
-    } else if(fert == "urea"){
-      P = -99
-    } else {
-      message("No detected Fertilizer")
-      P = -99
-    }
-    
-    return(P)
-  }
-  
-  # AP001    Broadcast, not incorporated            
-  # AP002    Broadcast, incorporated
-  
-  # FE005    Urea
-  # FE006    Diammonium phosphate (DAP)     
-  # FE028    NPK - urea  
-  
-  base_tb <- base_tb %>% 
-    mutate(N = map2_dbl(fert, value, fert_to_N),
-           P = map2_dbl(fert, value, fert_to_P),
-           FMCD = case_when(fert == "dap" ~ "FE006",
-                            fert == "urea" ~"FE005",
-                            TRUE  ~ NA_character_),
-           FACD = case_when(dap < 5 ~ "AP002",
-                            dap > 15 ~ "AP001",
-                            TRUE ~ NA_character_),
-           FDEP = case_when(dap < 5 ~ 5,
-                            dap > 15 ~ 1,
-                            TRUE ~ NA_real_))
-  
-  
-  # De acuerdo a las recomendaciones: 2 aplicaciones,
-  # 1 app: (nps) + 1(urea)/3  -- Incorporated
-  # 2 app: 2(urea)/3          --  No incorporated
-  
-  #*FERTILIZERS (INORGANIC)
-  #@F FDATE  FMCD  FACD  FDEP  FAMN  FAMP  FAMK  FAMC  FAMO  FOCD FERNAME
-  # 1     1 FE006 AP002     5    10    20   -99   -99   -99   -99 fertApp
-  # 1     1 FE005 AP002     5    30   -99   -99   -99   -99   -99 fertApp
-  # 1    40 FE005 AP001     1    10    30    10   -99   -99   -99 fertApp
-  
-  FDATE <- base_tb$dap
-  FMCD <-  base_tb$FMCD
-  FACD <-  base_tb$FACD
-  FDEP <-  base_tb$FDEP 
-  FAMN <-  round(base_tb$N)
-  FAMP <-  round(base_tb$P)
-  FAMK <-  -99
-  FAMC <-  -99 
-  FAMO <-  -99
-  FOCD <-  -99
-  FERNAME <- "AgroClimR"
-  #  
-  #  fertilizer <- data.frame(F = 1, FDATE, FMCD, FACD, FDEP, FAMN, FAMP, FAMK,
-  #                           FAMC, FAMO, FOCD, FERNAME)
-  
-  
-  
-  
-  fertilizer <- tibble(F = 1, FDATE, FMCD, FACD, FDEP, FAMN, FAMP, FAMK,
-                       FAMC, FAMO, FOCD, FERNAME)
-  
-  
-  return(fertilizer)
-  
-}
+#Crea archivo X file  en el directorio especifico de la simulacion
 
 
+#planting_details <- read_tsv(clipboard()) %>% pivot_wider(names_from = name)
+##add FERT switch 
+#
+#crop <- "maize"
+#path <- "inputs/setups/test_wheat/"
+#id_name <- "CIAT0001"
+#cultivar <- c("AW0071","Yecora_Rojo")    #same as .CUL file @VAR#  VAR-NAME  = c("AW0071","Yecora_Rojo")
+#soil <- "IB00000004"
+#wth_station <- "CIAT0001"
+#irri = F
+#fert_in = NULL
+#start_date <- input_dates$DATE[[1]]
+#planting_date <- input_dates$DATE[[1]]
+#emergence_date = NULL
+#treatments_number <- length(wth_station)
+#xfile <- crop_name_setup(id_name, crop)[[3]]
+#
 
 write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, planting_details, 
-                            irri = T, fert_in = NULL, start_date, planting_date, emergence_date = NULL, treatments_number){
+                            irri, fert_in, start_date, planting_date, emergence_date, treatments_number){
   
   options(encoding = "UTF-8")
   
-  # Function to write Crop names/extension into DSSAT format
-  crop_name_setup <- function(id_name, crop){
-    
-    base_tb <- tibble(
-      crop_name = c("rice", "maize", "bean", "barley", "sorghum", "wheat", "teff"),
-      CR = c("RI", "MZ", "BN", "BA", "SG", "WH", "TF"))
-    
-    cul <- base_tb %>% 
-      dplyr::filter(crop_name %in% crop) %>%
-      mutate(crop_name =  toupper(crop_name),
-             ext = paste0(id_name, ".", CR, "X"))
-    
-    return(cul)
-    
-    
-  }
+  
   
   # Function to write date into DSSAT format
   # 'var' must be object date class
@@ -162,14 +45,14 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
     
   }
   
-  
+  CR <- crop_name_setup(id_name[[1]], crop)[["CR"]]
   
   
   #############################
   #*EXP.DETAILS:
   #*############################
   
-  description <- list(details = "*AgroclimR - DSSAT X File",
+  description <- list(details = paste("*EXP.DETAILS:", paste0(id_name[1], CR),  id_name[2]),
                       people = "Rodriguez-Espinoza, J., Mesa-Diez J., Ramirez-Villegas, J.",
                       address = "CIAT-Colombia, Climate Action",
                       site = "https://github.com/jrodriguez88/agroclimR")
@@ -188,7 +71,7 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
     cat(paste(sprintf("%-12s", as.character(description$address)), "\n", sep = ""), file = name_exp)
     cat("@SITE\n", file = name_exp)
     cat(paste(sprintf("%-12s", as.character(description$site)), "\n", sep = ""), file = name_exp)
-    
+    cat("\n",file = name_exp)
     cat("@ PAREA  PRNO  PLEN  PLDR  PLSP  PLAY HAREA  HRNO  HLEN  HARM.........
     -99   -99   -99   -99   -99   -99   -99   -99   -99   -99", file = name_exp, sep = "\n")
     cat("\n", file = name_exp)
@@ -209,12 +92,14 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   # FL <- 1:200
   
   IC <- 0   
-  MI <- if(isTRUE(irri)){1} else {0}
+  MI <- 0 #if(isTRUE(irri)){1} else {0} # 
   MF <- if(is.null(fert_in)){0} else {1}
   MH <- 0
   
-  treatments <- data.frame(N = 1:treatments_number, R = 1, O = 0, C = 0, TNAME = "CIAT_",
-                           CU = 1, FL = 1:treatments_number, SA = 0, IC, MP = 1,
+  leng_tb <- 1:treatments_number
+  
+  treatments <- data.frame(N = leng_tb, R = 1, O = 0, C = 0, TNAME = "CIAT_",
+                           CU = 1, FL = leng_tb, SA = 0, IC, MP = 1,
                            MI, MF, MR = 0, MC = 0, MT = 0, ME = 0, MH, SM = 1)
   
   
@@ -250,10 +135,9 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   # INGENO <- 'CI0027' # Cultivar indentifier, this is the code for cultivar to run depend of crop
   # CNAME <- 'PIO 30F35HRB_'  # Whatever code to identify the cultivar ran, maybe no too long string
   
-  CR <- crop_name_setup(id_name, crop)[[2]]
+  #CR <- crop_name_setup(id_name[[1]], crop)[["CR"]]
   
-  
-  cultivars <- data.frame(C = 1 , CR, INGENO = "CROP00", CNAME = cultivar)
+  cultivars <- data.frame(C = 1 , CR, INGENO = cultivar[1], CNAME = cultivar[2])
   
   
   write_cultivars <- function(name_exp, cultivars){
@@ -281,7 +165,9 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   # @L ID_FIELD WSTA....  FLSA  FLOB  FLDT  FLDD  FLDS  FLST SLTX  SLDP  ID_SOIL    FLNAME
   #  1 -99      CCBR1502   -99   -99 DR000   -99   -99     0 SL      30  CCBuga0001 Calibracion
   # 
-  fields <- data.frame(L = 1:treatments_number, ID_FIELD = "CIAT_", WSTA = wth_station, FLSA = -99, FLOB = -99, FLDT = -99,
+  
+  
+  fields <- data.frame(L = leng_tb, ID_FIELD = "CIAT_", WSTA = wth_station, FLSA = -99, FLOB = -99, FLDT = -99,
                        FLDD = -99, FLDS = -99, FLST = -99, SLTX = -99, SLDP = -99, ID_SOIL = soil,
                        FLNAME = "FIELD01", XCRD = -99, YCRD = -99, ELEV = -99, AREA = -99, SLEN=-99,
                        FLWR = -99, SLAS = -99, FLHST = -99, FHDUR=-99)
@@ -373,10 +259,10 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   PLRS <- planting_details$PLRS  
   PLRD <- planting_details$PLRD  
   PLDP <- planting_details$PLDP  
-  PLNAME <- planting_details$PLNAME  
+  PLNAME <- "JRE"  
   
   planting <- data.frame( P = 1, PDATE, EDATE , PPOP, PPOE, PLME, 
-                          PLDS, PLRS = 80, PLRD, PLDP,
+                          PLDS, PLRS, PLRD, PLDP,
                           PLWT = -99, PAGE = -99, PENV = -99, PLPH = -99, SPRL = -99, PLNAME)
   
   
@@ -387,10 +273,10 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
     cat("*PLANTING DETAILS\n",file = name_exp)
     cat("@P PDATE EDATE  PPOP  PPOE  PLME  PLDS  PLRS  PLRD  PLDP  PLWT  PAGE  PENV  PLPH  SPRL                        PLNAME\n",file=name_exp)
     cat(paste(sprintf("%2d",as.integer(planting$P))," ",sprintf("%5s",planting$PDATE),
-              " ",sprintf("%5s",planting$EDATE)," ",sprintf("%5d",as.integer(planting$PPOP)),
+              " ",sprintf("%5s",planting$EDATE)," ",sprintf("%5s",as.character(planting$PPOP)),
               " ",sprintf("%5s",as.numeric(as.character(planting$PPOE)))," ",sprintf("%5s",planting$PLME),
-              " ",sprintf("%5s",planting$PLDS)," ",sprintf("%5d",as.integer(planting$PLRS)),
-              " ",sprintf("%5d",as.integer(planting$PLRD))," ",sprintf("%5d",as.integer(planting$PLDP)),
+              " ",sprintf("%5s",planting$PLDS)," ",sprintf("%5s",as.character(planting$PLRS)),
+              " ",sprintf("%5s",as.character(planting$PLRD))," ",sprintf("%5s",as.character(planting$PLDP)),
               " ",sprintf("%5d",as.integer(planting$PLWT))," ",sprintf("%5d",as.integer(planting$PAGE)),
               " ",sprintf("%5d",as.integer(planting$PENV))," ",sprintf("%5d",as.integer(planting$PLPH)),
               " ",sprintf("%5d",as.integer(planting$SPRL))," ",sprintf("%29s",planting$PLNAME),
@@ -416,7 +302,7 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   #*
   
   ## Fertilizer or NOt
-  if(planting_details$FERT == 'YES'){
+  if(!is.null(fert_in)){
     FERT <- 'D'
   } else{
     
@@ -452,10 +338,10 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
     
     for(i in 1:dim(fert_in)[1]){
       
-      cat(paste(sprintf("%2d %5i %5s %5i %5i %5.2f %5.2f %5.2f %5i %5i %5i %5-i", 1, fert_in$FDATE[i], fert_in$FMCD[i],
-                        fert_in$FACD[i], fert_in$FDEP[i], fert_in$FAMN[i], fert_in$FAMP[i], 
-                        fert_in$FAMK[i], fert_in$FAMC[i], fert_in$FAMO[i], 
-                        fert_in$FOCD[i], fert_in$FERNAME[i]), '\n'), file = name_exp)
+      cat(paste(sprintf("%2d %5d %5s %5s %5d %5d %5d %5d %5d %5d %5d %5s", 1, as.integer(fert_in$FDATE[i]), fert_in$FMCD[i],
+                        fert_in$FACD[i], as.integer(fert_in$FDEP[i]), as.integer(fert_in$FAMN[i]), as.integer(fert_in$FAMP[i]), 
+                        as.integer(fert_in$FAMK[i]), as.integer(fert_in$FAMC[i]), as.integer(fert_in$FAMO[i]), 
+                        as.integer(fert_in$FOCD[i]), fert_in$FERNAME[i]), '\n'), file = name_exp)
       
     }
     
@@ -479,7 +365,7 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   #*###################################
   
   ## IRRIGATION or RAINFED
-  if(planting_details$IRR == 'YES'){
+  if(isTRUE(irri)){
     IRR <- 'A'
   } else{
     
@@ -494,8 +380,8 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   input_sControls$NITRO <-  'Y'  ## Y = utiliza balance nitrogeno, N =  no utiliza balance nitrogeno
   input_sControls$PLANT <- 'R'  # R = planting on reporting date ## Add the other options
   input_sControls$IRRIG <- IRR  ##  R =  on reporting date, A automatically irragated, N Nothing, add the other options
-  input_sControls$FERTI = 'N' ## add more options
-  input_sControls$SDATE <- SDATE
+  input_sControls$FERTI = FERT ## add more options
+  #input_sControls$SDATE <- SDATE
   
   
   NYERS <- input_sControls$NYERS 
@@ -517,9 +403,9 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
                          NSWIT = 1, MESOM = "G", MESEV = "S", MESOL =2, MANAGEMENT = "MA",
                          PLANT, IRRIG,
                          FERTI, RESID = "R", HARVS = "M", OUTPUTS = "OU", FNAME = "N",
-                         OVVEW = "N", SUMRY = "Y", FROPT = 1, GROUT = "Y", CAOUT = "N",
-                         WAOUT = "N", NIOUT = "N", MIOUT = "N",
-                         DIOUT = "N", VBOSE = "N", CHOUT = "N", OPOUT = "N")
+                         OVVEW = "Y", SUMRY = "Y", FROPT = 1, GROUT = "Y", CAOUT = "N",
+                         WAOUT = "Y", NIOUT = "N", MIOUT = "N",
+                         DIOUT = "N", VBOSE = "Y", CHOUT = "N", OPOUT = "N")
   
   
   
@@ -583,7 +469,7 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   PLAST <- -99
   
   simulation_options <- data.frame(N = 1, PLANTING = 'PL', PFRST, PLAST, PH2OL = 50, PH2OU = 100,
-                                   PH2OD = 30, PSTMX = 40, PSTMN = 10, IRRIGATION = "IR", IMDEP =30, ITHRL = 50, 
+                                   PH2OD = 30, PSTMX = 40, PSTMN = 10, IRRIGATION = "IR", IMDEP = 60, ITHRL = 100, 
                                    ITHRU =100, IROFF = "GS000", IMETH = "IR001", IRAMT = 10, IREFF = 1,
                                    NITROGEN = "NI", NMDEP = 30, NMTHR = 50, NAMNT = 25, NCODE = "FE001",
                                    NAOFF = "GS000", RESIDUES = "RE", RIPCN = 100, RTIME = 1, RIDEP = 20, 
@@ -629,7 +515,7 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
     
   }
   
-  name_exp <- paste0(path, "/", crop_name_setup(id_name, crop)[[3]])
+  name_exp <- paste0(path, "/", crop_name_setup(id_name[[1]], crop)[["ext"]])
   
   xfile <- file(name_exp, open = "w")
   
@@ -637,7 +523,8 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   write_treatments(xfile, treatments)  ## the parameter FL its to identify the run with a specific .WTH
   write_cultivars(xfile, cultivars)
   write_fields(xfile,fields)
-  write_planting(xfile, planting)     
+  write_planting(xfile, planting)
+  if(FERT == 'D'){write_fertilizer(xfile, fert_in)}
   write_sim_control(xfile, sim_ctrl)
   write_sim_setup(xfile, simulation_options)
   close(xfile)
@@ -646,3 +533,68 @@ write_exp_dssat <- function(path, id_name, crop, cultivar, soil, wth_station, pl
   
   
 }
+
+
+
+
+# Function to write Crop names/model/extension into DSSAT format
+crop_name_setup <- function(id_name, crop){
+  
+  base_tb <- tibble(
+    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
+    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF"),
+    model = c(paste0(c("RI", "MZ", "BA", "SG", "WH"), "CER"), rep("CRGRO", 2), "TFAPS"))
+  
+  cul <- base_tb %>% 
+    dplyr::filter(crop_name %in% all_of(crop)) %>%
+    mutate(crop_name =  toupper(crop_name),
+           ext = paste0(id_name, ".", CR, "X"))
+  
+  return(cul)
+  
+  
+}
+
+
+
+
+transform_fert_table <- function(fert_tb){
+  
+  
+  # AP001    Broadcast, not incorporated            
+  # AP002    Broadcast, incorporated
+  
+  # FE005    Urea
+  # FE006    Diammonium phosphate (DAP)     
+  # FE028    NPK - urea  
+  
+  
+  base_fert <- fert_tb %>% 
+    mutate(FMCD = "FE028",
+           FACD = case_when(FERT_No == 1 ~ "AP002",
+                            TRUE ~ "AP001"),
+           FDEP = case_when(FERT_No == 1 ~ 5,
+                            TRUE ~ 1),
+           N = case_when(N == 0 ~ -99,
+                         TRUE ~ N),
+           P = case_when(P == 0 ~ -99,
+                         TRUE ~ P),
+           K = case_when(K == 0 ~ -99,
+                         TRUE ~ K),
+           FAMC = -99, FAMO = -99, FOCD = -99, FERNAME = "AgroClimR", F = 1) %>%
+    rename(FDATE = DDE, FAMN = N, FAMP = P, FAMK = K) %>% 
+    dplyr::select(F, FDATE, FMCD, FACD, FDEP, FAMN, FAMP, FAMK, FAMC, FAMO, FOCD, FERNAME)
+  
+  
+  #*FERTILIZERS (INORGANIC)
+  #@F FDATE  FMCD  FACD  FDEP  FAMN  FAMP  FAMK  FAMC  FAMO  FOCD FERNAME
+  # 1     1 FE006 AP002     5    10    20   -99   -99   -99   -99 fertApp
+  # 1     1 FE005 AP002     5    30   -99   -99   -99   -99   -99 fertApp
+  # 1    40 FE005 AP001     1    10    30    10   -99   -99   -99 fertApp    
+  
+  return(base_fert)
+  
+  
+}
+
+

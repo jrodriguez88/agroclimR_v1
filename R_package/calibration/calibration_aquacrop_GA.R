@@ -13,27 +13,6 @@
 #basedata_path <- "_AQUACROP/plugin/"
 #calibration_path <- path_proj
 
-# Funcion copia inputs base en directorio de simulacion de cada setups
-copy_inputs_aquacrop <- function(path_proj, basedata_path){
-  
-  # ruta con los archivos necesarios para 
-  files_default <- list.files(basedata_path, recursive = T, full.names = T)
-  
-  file.copy(files_default, path_proj, recursive = T)
-  
-  
-  dir.create(paste0(path_proj, "/OUTP"))
-  dir.create(paste0(path_proj, "/SIMUL"))
-  dir.create(paste0(path_proj, "/LIST"))
-  
-  
-  file.copy(list.files(path_proj, pattern = "CO2", full.names = T), paste0(path_proj, "/SIMUL/"))
-  file.copy(list.files(path_proj, pattern = "DailyResults", full.names = T), paste0(path_proj, "/SIMUL/"))
-  file.copy(list.files(path_proj, pattern = "DailyResults", full.names = T), paste0(path_proj, "/SIMUL/"))
-  
-  
-}
-
 
 ##default list of parameters - based on IR72 and IR64 -- max an min == +/- 30%
 #default_list <- tidy_to_write_crop(NULL)
@@ -43,13 +22,13 @@ copy_inputs_aquacrop <- function(path_proj, basedata_path){
 
 
 ## Aquacrop Phenological parameters
-x1 <- 150  #"GDD_emergence"
-x2 <- 800   #GDD_CCx
-x3 <- 1150     #"GDD_FL"
-x4 <- 350  #"GDD_FLL"
-x5 <- 1900   #"GDD_M"
-x6 <- 1700  #GDD_senecence
-x7 <- 500  #GDD_HI
+#x1 <- 150  #"GDD_emergence"
+#x2 <- 800   #GDD_CCx
+#x3 <- 1150     #"GDD_FL"
+#x4 <- 350  #"GDD_FLL"
+#x5 <- 1900   #"GDD_M"
+#x6 <- 1700  #GDD_senecence
+#x7 <- 500  #GDD_HI
 #
 #params_to_cal <- test_params_model %>% filter(str_detect(Parameter, phen_pattern))
 #
@@ -115,8 +94,8 @@ cal_phen_aquacrop <- function(x1, x2, x3, x4, x5, x6, x7, params_to_cal, calibra
   
   list_op <- paste0(dir_run, "OUTP/")
   
-  sim_data_cal <- map(.x = list.files(list_op, pattern = "day"), 
-                  ~read_aquacrop_day(file = .x, path = list_op)) %>% 
+  sim_data_cal <- map(.x = list.files(list_op, pattern = "day", full.names = T), 
+                      ~read_aquacrop_day(file = .x)) %>% 
     set_names(list.files(list_op, pattern = "day") %>% str_remove_all("PRMday.OUT"))
   
   
@@ -237,8 +216,8 @@ cal_growth_aquacrop <- function(x1, x2, x3, x4, x5, x6, params_to_cal, phen_para
   ### Extract ouputs
   list_op <- paste0(dir_run, "OUTP/")
   
-  sim_data_cal <- map(.x = list.files(list_op, pattern = "day"), 
-                      ~read_aquacrop_day(file = .x, path = list_op)) %>% 
+  sim_data_cal <- map(.x = list.files(list_op, pattern = "day", full.names = T), 
+                      ~read_aquacrop_day(file = .x)) %>% 
     set_names(list.files(list_op, pattern = "day") %>% str_remove_all("PRMday.OUT"))
   
 
@@ -343,8 +322,8 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
   ### Extract ouputs
   list_op <- paste0(dir_run, "OUTP/")
   
-  sim_data_cal <- map(.x = list.files(list_op, pattern = "day"), 
-                      ~read_aquacrop_day(file = .x, path = list_op)) %>% 
+  sim_data_cal <- map(.x = list.files(list_op, pattern = "day", full.names = T), 
+                      ~read_aquacrop_day(file = .x)) %>% 
     set_names(list.files(list_op, pattern = "day") %>% str_remove_all("PRMday.OUT"))
   
   
@@ -459,8 +438,8 @@ cal_aquacrop_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x1
   ### Extract ouputs
   list_op <- paste0(dir_run, "OUTP/")
   
-  sim_data_cal <- map(.x = list.files(list_op, pattern = "day"), 
-                      ~read_aquacrop_day(file = .x, path = list_op)) %>% 
+  sim_data_cal <- map(.x = list.files(list_op, pattern = "day", full.names = T), 
+                      ~read_aquacrop_day(file = .x)) %>% 
     set_names(list.files(list_op, pattern = "day") %>% str_remove_all("PRMday.OUT"))
   
   

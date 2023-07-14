@@ -115,7 +115,10 @@ WCST_Saxton <- function(SBDM){
 SSKS_Saxton <- function(S, C, OM, SBDM, WCFC=NULL, WCWP=NULL, WCST=NULL){
   if(is.null(WCFC)){
     #        message("Water Content PTF used")
-    WCFC <- WCFC_Saxton(S,C,OM)}
+    WCFC <- WCFC_Saxton(S,C,OM)} 
+  
+  
+  
   if(is.null(WCWP)){
     #        message("Water Content PTF used")
     WCWP <- WCWP_Saxton(S,C,OM)}
@@ -126,7 +129,7 @@ SSKS_Saxton <- function(S, C, OM, SBDM, WCFC=NULL, WCWP=NULL, WCST=NULL){
   B <- (log(1500) - log(33))/(log(WCFC/100) - log(WCWP/100))  #Eq 15
   alp <- 1/B                #Eq 18
   
-  SSKS <- 1930*(WCST/100 - WCFC/100)^(3-alp)   # Eq 16
+  SSKS <- 1930*abs((WCST/100 - WCFC/100))^(3-alp)   # Eq 16
   
   return(SSKS)
   
@@ -479,13 +482,15 @@ get_STC <- function(S, C, sysclass="USDA") {
 
 
 
-# Function to estimate Soil Saturated Hydraulic Conductivity (SSKS) from different Soil Pedotransfer Function (PTF) - Units: mm/h
+# Function to estimate Soil Saturated Hydraulic Conductivity (SSKS) from different Soil Pedotransfer Function (PTF) - 
 #SBDM by texture <-  "https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/survey/office/ssr10/tr/?cid=nrcs144p2_074844"
 # For rice-soils BD values between 1.3 - 1.7 (g/cm³)
 # OM values between 1 - 3 (%)
 # min and max are SSKS-threshold
 
-SSKS_cal <- function(S, C, SOM=1.5, SBDM=1.5, kmin=1, kmax=NA, output='bootmean') {
+#Output = Units: mm/h
+
+SSKS_cal <- function(S, C, SOM=1.5, SBDM=1.5, kmin=0.1, kmax=250, output='bootmean') {
   
   #    source("https://raw.githubusercontent.com/jrodriguez88/ORYZA_Model_RTOOLS/master/PT_Functions.R")
   

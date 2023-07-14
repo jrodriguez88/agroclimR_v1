@@ -66,7 +66,7 @@ write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sld
   
   
   
- tidy_soil_dssat <- function(soil_data){
+tidy_soil_dssat <- function(soil_data, max_depth = 200){
     
     var_names <- colnames(soil_data)
     if(all(any(c("depth", "DEPTH", "SLB") %in% var_names) & 
@@ -81,7 +81,7 @@ write_soil_dssat <- function(path, id_name, soil_data, salb = 0.13, evapL=6, sld
     
     # require SRGF_cal function --> utils_crop_model
     SRGF <- soil_data[c("depth", "DEPTH", "SLB")[which(c("depth", "DEPTH", "SLB") %in% var_names)]] %>%
-      mutate(SRGF = SRGF_cal(pull(.), max(.), 3)) %>% pull(SRGF)
+      mutate(SRGF = SRGF_cal(pull(.), max_depth, 2)) %>% pull(SRGF)
     
     soil_data <- soil_data %>% mutate(SRGF = SRGF)
     
@@ -112,9 +112,9 @@ SLDR <- sldr      # SLDR     Drainage rate, fraction day-1
 SLRO <- data[[2]]       # SLRO     Runoff curve no. (Soil Conservation Service)
 SLNF <- slnf        # SLNF     Mineralization factor, 0 to 1 scale
 SLPF <- slpf     # SLPF     Photosynthesis factor, 0 to 1 scale 
-SMHB <- "-99"    # SMHB     pH in buffer determination method, code
-SMPX <- "-99"    # SMPX     Phosphorus determination code 
-SMKE <- "-99"    # SMKE     Potassium determination method, code
+SMHB <- "IB001"    # SMHB     pH in buffer determination method, code
+SMPX <- "IB001"    # SMPX     Phosphorus determination code 
+SMKE <- "IB001"    # SMKE     Potassium determination method, code
 
 format_var <- function(soil_data, par, pat = "%3.1f"){
   
@@ -161,7 +161,7 @@ soil_tb <- map2(soil_data_col, format_data_col,
 if (isFALSE(multi)){
   idsoilAR <- 1
   idsoilAR <<- idsoilAR
-  file.remove(paste0(path, id_name, '.SOL'))
+  suppressWarnings(file.remove(paste0(path, id_name, '.SOL')))
 } else if (all(!exists("idsoilAR"), isTRUE(multi))){
   file.remove(paste0(path, id_name, '.SOL'))
   idsoilAR <- 1
@@ -175,7 +175,7 @@ if (isFALSE(multi)){
     idsoilAR <<- idsoilAR
     }
 
-id_acjr <- paste0("*JRAR", str_pad(idsoilAR, width = 6, "left", "0"))
+id_acjr <- paste0("*", id_name, str_pad(idsoilAR, width = 6, "left", "0"))
 
 max_depth <- soil_tb$SLB[[nrow(soil_tb)]]
 texture <- toupper(str_sub(stc[[1]],1,2))
@@ -199,11 +199,11 @@ cat(sprintf("%11s %10s %4s %7s %1s",id_acjr, " AgroclimRV1", texture , max_depth
 cat("\n")
 cat(c("@SITE        COUNTRY          LAT     LONG SCS FAMILY"), sep = "\n")
 #cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", lat, lon , paste0("USDA Texture: ", stc[[1]])))
-cat(sprintf(" %-12s%-15s %-6.2f %-6.2f %-16s", id_name, "AgroclimR", -99, -99 , paste0("USDA Texture: ", stc[[1]])))
+cat(sprintf(" %-12s%-15s   %-6d %-4d%-16s", id_name, "AgroclimR", as.integer(-99), as.integer(-99) , paste0("USDA Texture: ", stc[[1]])))
 cat("\n")
 cat(c('@ SCOM  SALB  SLU1  SLDR  SLRO  SLNF  SLPF  SMHB  SMPX  SMKE'))
 cat("\n")
-cat(sprintf("%6s %5.2f %5.1f %5.2f %5.1f %5.2f %5.2f %5s %5s %5s", 
+cat(sprintf("%6s %5.2f %5.0f %5.1f %5.0f %5.2f %5.2f %5s %5s %5s", 
             SCOM, SALB, SLU1, SLDR, SLRO, SLNF, SLPF, SMHB, SMPX, SMKE))
 cat("\n")
 cat(c('@  SLB  SLMH  SLLL  SDUL  SSAT  SRGF  SSKS  SBDM  SLOC  SLCL  SLSI  SLCF  SLNI  SLHW  SLHB  SCEC  SADC'))
