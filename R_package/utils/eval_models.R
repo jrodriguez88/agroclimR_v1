@@ -30,7 +30,7 @@ import_exp_data <- function(path_data, INPUT_data_files, cultivar, model = "oryz
   
   ## Extrae datos de suelo
   soil <- data %>% mutate(soil_data = map(input_data, ~.x$SOIL_obs))  %>% dplyr::select(-input_data)  %>% 
-    unnest(soil_data) %>% mutate()
+    unnest(soil_data) %>% 
     mutate(LOC_ID = str_sub(ID, 1, 4)) %>% group_by(LOC_ID, NL) %>%
     summarize_if(is.numeric, .funs = mean_boot) %>%
     mutate(ID=LOC_ID, STC=get_STC(SAND, CLAY)) %>% ungroup() %>%  
@@ -102,7 +102,7 @@ import_exp_data <- function(path_data, INPUT_data_files, cultivar, model = "oryz
 
 ### extract from base data - INPUT_data format xlsx
 # variable  <- c("phen", "lai", "dry_matter", "yield")
-extract_obs_var <- function(obs_data, variable, model = NULL) {
+extract_obs_var <- function(obs_data, variable, model = "oryza") {
   
   # vars select shet names required
   vars <- switch(variable, 
@@ -378,7 +378,7 @@ write_files_aquacrop <- function(path_proj, test_data, cultivar){
 
 ## DSSAT 
 #################
-write_files_dssat <- function(path_proj, test_data, cultivar){
+write_files_dssat <- function(path_proj, test_data, cultivar, crop = "rice"){
   
   
   ### Directorio de salidas (OUTPUTS)
@@ -481,7 +481,7 @@ write_files_dssat <- function(path_proj, test_data, cultivar){
     left_join(agro_data, by = join_by(exp_file)) %>% 
     mutate(PLME = ifelse(ESTAB == "DIRECT-SEED", "S", "T"),
            irri = ifelse(CROP_SYS == "IRRIGATED", T, F),
-           PLDS = "R", PLRS = 20, PLRD = 90,  PLDP = 4, path = paste0(path_proj, "EXP/"), crop = "rice",
+           PLDS = "R", PLRS = 20, PLRD = 90,  PLDP = 4, path = paste0(path_proj, "EXP/"), crop = crop,
            cultivar = list(c("CROP00", cultivar)))  %>%
     
     
@@ -560,25 +560,28 @@ copy_inputs_aquacrop <- function(path_proj, basedata_path){
 #################
 copy_inputs_dssat <- function(path_proj, basedata_path, crop = "rice"){
   
-  CR <- tibble(
-    crop_name = c("rice", "maize", "barley", "sorghum", "wheat", "bean", "fababean", "teff"),
-    CR = c("RI", "MZ", "BA", "SG", "WH", "BN", "FB",  "TF")) %>% filter(crop_name==crop)%>%
-    pull(CR)
+  CR <- crop_name_setup("CIAT0001", crop)[["CR"]]
   
   
   #  gen_files <- list.files(basedata_path, full.names = T, pattern = "ECO|SPE|CUL") %>%
   #   str_subset(CR)
   
-  wth_files <- list.files(basedata_path, full.names = T, pattern = paste0(".WTH"))
+  wth_files <- list.files(paste0(basedata_path, "/WTH"), full.names = T, pattern = paste0(".WTH"))
   
   
-  X_files <- list.files(basedata_path, full.names = T, pattern = paste0(".", CR, "X$"))
+  exp_files <- list.files(paste0(basedata_path, "/EXP"), full.names = T, pattern = paste0(".", CR, "X$"))
   
-  soil_files <- list.files(basedata_path, full.names = T, pattern = ".SOL$")
+  soil_files <- list.files(paste0(basedata_path, "/SOIL"), full.names = T, pattern = ".SOL$") %>% 
+    map(~read_lines(.)[-1]) %>% unlist() 
   
+  sink(file = paste0(path_proj, "/SOIL.SOL"), append = F)
+  cat("*SOILS: AgroclimR DSSAT Soil Input File - by https://github.com/jrodriguez88/agroclimR", sep = "\n")
+  cat("\n")
+  writeLines(soil_files)
+  sink()
   
   # Copy files in folder project
-  file.copy(c(gen_files, setting_files, soil_files), path_proj)
+  file.copy(c(wth_files, exp_files), path_proj)
   
   #  map2(.x = c("*.SPE", "*.ECO", "*.CUL"), 
   #       .y = paste0("standard", c("*.SPE", "*.ECO", "*.CUL")), 

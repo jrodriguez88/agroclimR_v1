@@ -29,7 +29,6 @@
 # Load Functions
 
 
-
 # Funcin para generar multiples combinaciones de tablas en un rango determinado 
 generate_combinations_paramsTb <- function(params_to_cal, default_list, length_escenaries = 2000){
   
@@ -379,26 +378,7 @@ cal_yield_oryza <- function(x1, x2, x3, x4, x5, x6, x7, x8,  params_to_cal, phen
 
 
 
-#x1 <- 20          #"SLATB"
-#x2 <- 10          #"FSHTB"
-#x3 <- 15          #"DRLVT"
-#x4 <- 12          #"BFTB" 
-#x5 = 0.0008554438  #"DVRJ"
-#x6 = 0.0007576     #"DVRI"
-#x7 = 0.0005704062  #"DVRP"
-#x8 = 0.002219568   #"DVRR"
-#x9 = 0.0085      #"RGRLMX
-#x10 = 0.004       #"RGRLMN
-#x11 = 0.004337274 #"SLAMAX
-#x12 = 0.2453043   #"FSTR"
-#x13 = 64900      #"SPGF"  
-#x14 = 0.0000249  #"WGRMX"  
-#x15 = 0.4        #"ZRTMCD"  
-#x16 = 1.45       #"ULLE"   
-#x17 = 1404       #"LLLE"   
-#x18 = 0.4        #"FSWTD"    
-#x19 = 21         #"COLDREP"
-#x20 = 36.5       #"CTSTER"  
+ 
 #test_params_oryza <- tidy_to_write_crop(final_params)
 #params_to_cal <- generate_combinations_paramsTb(test_params_oryza, default_list , 1000)
 
@@ -408,6 +388,26 @@ cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, 
   
   
   ##Crea set de parametros  a calibrar 
+  #x1 <- 20          #"SLATB"
+  #x2 <- 10          #"FSHTB"
+  #x3 <- 15          #"DRLVT"
+  #x4 <- 12          #"BFTB" 
+  #x5 = 0.0008554438  #"DVRJ"
+  #x6 = 0.0007576     #"DVRI"
+  #x7 = 0.0005704062  #"DVRP"
+  #x8 = 0.002219568   #"DVRR"
+  #x9 = 0.0085      #"RGRLMX
+  #x10 = 0.004       #"RGRLMN
+  #x11 = 0.004337274 #"SLAMAX
+  #x12 = 0.2453043   #"FSTR"
+  #x13 = 64900      #"SPGF"  
+  #x14 = 0.0000249  #"WGRMX"  
+  #x15 = 0.4        #"ZRTMCD"  
+  #x16 = 1.45       #"ULLE"   
+  #x17 = 1404       #"LLLE"   
+  #x18 = 0.4        #"FSWTD"    
+  #x19 = 21         #"COLDREP"
+  #x20 = 36.5       #"CTSTER" 
   
   
 
@@ -488,10 +488,6 @@ cal_oryza_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, 
   
   
 }
-
-
-
-
 
 
 

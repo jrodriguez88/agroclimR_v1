@@ -60,9 +60,11 @@ read_plantgro <- function(file) {
 
   data_plangro <- suppressWarnings(map(skip, ~fread(file, skip = .x))) %>% 
     set_names(exp_names) %>%
-    map(., ~mutate(.,date = lubridate::make_date(`@YEAR`)+DOY-1)) %>% 
-    bind_rows(.id = "exp_file")
-  
+    map(~.x %>% mutate(across(where(is.character), as.numeric))) %>% 
+    bind_rows(.id = "exp_file") %>% 
+    mutate(date = lubridate::make_date(`@YEAR`)+DOY-1)
+    
+
   
   return(data_plangro)
     

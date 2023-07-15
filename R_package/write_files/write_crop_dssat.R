@@ -25,7 +25,7 @@ tidy_to_write_crop <- function(param_data, model = "dssat", values = "Base", exp
     Unit = c('GDD', 'h', 'GDD', 'GDD', 'GDD', 'No/g', 'g', 'scaler value', '°C', '°C'),
     Base = map(list('500', '12', '100', '450', '83', '55', '0.025', '1', '28', '15'), function(x) if(is.character(x)){as.numeric(x)}else{x}),
     Min = map(list('150', '11', '5', '150', '55', '50', '0.015', '0.7', '25', '12'), function(x) if(is.character(x)){as.numeric(x)}else{x}),
-    Max = map(list('800', '13', '300', '850', '90', '75', '0.032', '1.3', '34', '18'), function(x) if(is.character(x)){as.numeric(x)}else{x}),
+    Max = map(list('800', '13', '300', '850', '90', '75', '0.032', '1.3', '42', '20'), function(x) if(is.character(x)){as.numeric(x)}else{x}),
     
     Description = c('Basic vegetative phase', 'Critical photoperiod or the longest day length',
                     'Extent to which phasic development leading to panicle initiation is delayed',

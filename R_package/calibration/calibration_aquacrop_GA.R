@@ -353,27 +353,7 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
 
 
 
-# Aquacrop Global parameters
-
-
-#x1 <- 150  #"GDD_emergence"
-#x2 <- 800   #GDD_CCx
-#x3 <- 1150     #"GDD_FL"
-#x4 <- 350  #"GDD_FLL"
-#x5 <- 1900   #"GDD_M"
-#x6 <- 0.007  #"CGC"
-#x7 <- 1700  #GDD_senecence
-#x8 <- 0.88   #CCx
-#x9 <- 19     #"WP"
-#x10 <- 37       #"HIo"
-#x11 <- 500  #GDD_HI
-#x12 <- 0.0052  #"CDC"
-#x13 <- 0.45   #"Zr"
-#x14 <- 1500000  #"NPLDS"
-#x15 <- 1.1  #"Kc"
-#x16 <- 0.4      #"Ks_exp"  
-#x17 <- 8        #"Ks_polc"  
-#x18 <- 35       #"Ks_polh"   
+   
 
 
 
@@ -383,6 +363,28 @@ cal_yield_aquacrop <- function(x1, x2, x3, x4, x5,  params_to_cal, phen_params, 
 #Funcion de optimizacion para parametros 18 parametros de aquacrop v3 - 
 cal_aquacrop_global <- function(x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18,  params_to_cal, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path, res_var = c("yield"), phenol = NULL){
   
+  
+  # Aquacrop Global parameters
+  
+  
+  #x1 <- 150  #"GDD_emergence"
+  #x2 <- 800   #GDD_CCx
+  #x3 <- 1150     #"GDD_FL"
+  #x4 <- 350  #"GDD_FLL"
+  #x5 <- 1900   #"GDD_M"
+  #x6 <- 0.007  #"CGC"
+  #x7 <- 1700  #GDD_senecence
+  #x8 <- 0.88   #CCx
+  #x9 <- 19     #"WP"
+  #x10 <- 37       #"HIo"
+  #x11 <- 500  #GDD_HI
+  #x12 <- 0.0052  #"CDC"
+  #x13 <- 0.45   #"Zr"
+  #x14 <- 1500000  #"NPLDS"
+  #x15 <- 1.1  #"Kc"
+  #x16 <- 0.4      #"Ks_exp"  
+  #x17 <- 8        #"Ks_polc"  
+  #x18 <- 35       #"Ks_polh"
   
   ##Crea set de parametros  a calibrar 
   
