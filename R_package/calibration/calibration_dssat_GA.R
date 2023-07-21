@@ -90,19 +90,17 @@ cal_phen_dssat <- function(x1, x2, x3, x4, params_to_cal, calibration_path, cult
 
 #params_to_cal <- test_params_model %>% dplyr::filter(str_detect(Parameter, growth_pattern))
 ## Funcion de optimizacion de parametros de crecimiento del modelo DSSAT-CERES-RICE
-cal_growth_dssat <- function(x1, x2, x3, x4, params_to_cal, phen_params, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
+cal_growth_dssat <- function(x1, x2, params_to_cal, phen_params, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
     
   # Parameters to  growth calibration 
   
   
   #  x1 <- 83  #"PHINT"
-  #  x2 <- 55   #"G1"
-  #  x3 <- 0.025     #"G2"
-  #  x4 <- 1  #"G3"
+  #  x2 <- 1  #"G3"
 
   
   test_params_growth  <-  tibble(Parameter = params_to_cal$Parameter,
-                                 Set_cal = list(x1, x2, x3, x4)) 
+                                 Set_cal = list(x1, x2)) 
   
   
   
@@ -164,18 +162,20 @@ return(mean(metrics_cal$NRMSE))
 
 #params_to_cal <- test_params_model %>% dplyr::filter(str_detect(Parameter, yield_pattern))
 ## Funcion de optimizacion de parametros stress y rendimiento del modelo DSSAT-CERES-RICE -- Yield/Biomass response
-cal_yield_dssat <- function(x1, x2, params_to_cal, phen_params, growth_params, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
+cal_yield_dssat <- function(x1, x2, x3, x4, params_to_cal, phen_params, growth_params, calibration_path, cultivar, input_data, exp_files, test_params_model, basedata_path){
   
   # Parameters to  growth calibration 
   
   
   #  x1 <- 28  #"THOT"
   #  x2 <- 15   #"TCLDP"
+  #  x3 <- 55   #"G1"
+  #  x4 <- 0.025     #"G2"
 
   
   
   test_params_yield  <-  tibble(Parameter = params_to_cal$Parameter,
-                                 Set_cal = list(x1, x2)) 
+                                 Set_cal = list(x1, x2, x3, x4)) 
   
   
   
@@ -337,8 +337,8 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
   default_list <- tidy_to_write_crop(NULL)
   
   phen_pattern <- "P1|P2O|P2R|P5"
-  growth_pattern <- "PHINT|G1|G2|G3"
-  yield_pattern <- "THOT|TCLDP"
+  growth_pattern <- "PHINT|G3"
+  yield_pattern <- "THOT|TCLDP|G1|G2"
   
   
   ### Separa tamaño de la poblacion, maximo de iteraciones y numero de escenarios a simular en tablas de particion
@@ -516,7 +516,7 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
     
     tic("Yield calibration + stress parameters")
     GA_yield <- ga(type = "real-valued", 
-                   fitness = function(x) -cal_yield_dssat(x[1], x[2],
+                   fitness = function(x) -cal_yield_dssat(x[1], x[2], x[3], x[4],
                                                              params_to_cal, phen_params, growth_params, calibration_path, cultivar, 
                                                              input_data, exp_files, test_params_model, basedata_path),
                    lower = low_min, 
@@ -714,7 +714,7 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
     message(paste0("2nd Stage: GA_Growth - Parameters: ", growth_pattern))
     tic("Growth and Leaf parameters Calibration")
     GA_growth <- ga(type = "real-valued", 
-                    fitness = function(x) -cal_growth_dssat(x[1], x[2], x[3], x[4],
+                    fitness = function(x) -cal_growth_dssat(x[1], x[2],
                                                                growth_to_cal, phen_params, calibration_path, cultivar, 
                                                                input_data, exp_files, test_params_model, basedata_path),
                     lower =  low_ming, 
@@ -759,7 +759,7 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
     message(paste0("3rd Stage: GA_Yield+Stress - Parameters: ", yield_pattern))
     tic("Yield calibration + stress parameters")
     GA_yield <- ga(type = "real-valued", 
-                   fitness = function(x) -cal_yield_dssat(x[1], x[2], 
+                   fitness = function(x) -cal_yield_dssat(x[1], x[2], x[3], x[4],
                                                              yield_to_cal, phen_params, growth_params, calibration_path, cultivar, 
                                                              input_data, exp_files, test_params_model, basedata_path),
                    lower = low_miny, 
@@ -865,7 +865,7 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
     message(paste0("2nd Stage: GA_Growth - Parameters: ", growth_pattern))
     tic("Growth and Leaf parameters Calibration")
     GA_growth <- ga(type = "real-valued", 
-                    fitness = function(x) -cal_growth_dssat(x[1], x[2], x[3], x[4],
+                    fitness = function(x) -cal_growth_dssat(x[1], x[2], 
                                                                growth_to_cal, phen_params, calibration_path, cultivar, 
                                                                input_data, exp_files, test_params_model, basedata_path),
                     lower =  low_ming, 
@@ -910,7 +910,7 @@ calibration_dssat_GA <- function(calibration_path, cultivar, input_data, exp_fil
     message(paste0("3rd Stage: GA_Yield+Stress - Parameters: ", yield_pattern))
     tic("Yield calibration + stress parameters")
     GA_yield <- ga(type = "real-valued", 
-                   fitness = function(x) -cal_yield_dssat(x[1], x[2],
+                   fitness = function(x) -cal_yield_dssat(x[1], x[2], x[3], x[4], 
                                                              yield_to_cal, phen_params, growth_params, calibration_path, cultivar, 
                                                              input_data, exp_files, test_params_model, basedata_path),
                    lower = low_miny, 

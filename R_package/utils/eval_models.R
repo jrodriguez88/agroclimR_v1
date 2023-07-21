@@ -206,7 +206,7 @@ extract_obs_var <- function(obs_data, variable, model = "oryza") {
                 date >= c ~ 0.6,
                 TRUE ~ 0.5),
               canopy = (1 - exp(-k*value))*100,
-              se = (1 - exp(-k*se))*100)})) %>% unnest(data) %>%
+              se = canopy*(se/value))})) %>% unnest(data) %>%
       dplyr::select(exp_file, date, var, value = canopy, se)
     
   }
@@ -834,7 +834,7 @@ get_metrics <- function(data) {
 ##############
 eval_sim_oryza <- function(obs_data, sim_data, exp_set, variable = "phen", by_var = F) {
     
-    sim_ <- extract_sim_var(sim_data, exp_set, variable = variable)
+    sim_ <- extract_sim_oryza(sim_data, exp_set, variable = variable)
     
     obs_ <- extract_obs_var(obs_data, variable = variable) %>% 
       dplyr::filter(exp_file %in% str_remove(exp_set, ".exp"))
