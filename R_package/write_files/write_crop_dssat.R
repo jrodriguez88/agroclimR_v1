@@ -97,7 +97,7 @@ tidy_to_write_crop <- function(param_data, model = "dssat", values = "Base", exp
 
 
 
-write_crop_dssat <- function(path, cultivar, crop_params_dssat, ecotype = "IB0001", id_var = "CROP00"){
+write_crop_dssat <- function(path, cultivar, crop_params_dssat, ecotype = "IB0001", id_var = "CROP00", new_file = T){
   
   
   
@@ -132,17 +132,24 @@ write_crop_dssat <- function(path, cultivar, crop_params_dssat, ecotype = "IB000
 #write_cul <- function(matrix_cul, out_dir){
   
   # matrix_cul <- x
-  
- sink(paste0(path, '/RICER048.CUL'), append = F)
-  
-  
-  
-  cat("*RICE CULTIVAR COEFFICIENTS: RICER048 MODEL - by https://github.com/jrodriguez88", sep = "\n")
-  cat("\n")
-  
-  cat("@VAR#  VAR-NAME........ EXPNO   ECO#    P1   P2R    P5   P2O    G1    G2    G3 PHINT  THOT TCLDP TCLDF")
-  # 
-  cat("\n")
+ 
+ if(isTRUE(new_file)){
+   sink(paste0(path, '/RICER048.CUL'), append = F)
+   
+   cat("*RICE CULTIVAR COEFFICIENTS: RICER048 MODEL - by https://github.com/jrodriguez88", sep = "\n")
+   cat("\n")
+   
+   cat("@VAR#  VAR-NAME........ EXPNO   ECO#    P1   P2R    P5   P2O    G1    G2    G3 PHINT  THOT TCLDP TCLDF")
+   # 
+   cat("\n")
+   
+ } else {
+   
+   sink(paste0(path, '/RICER048.CUL'), append = T)
+   cat("\n")
+   
+ }
+
 
   cat(paste(sprintf("%6s", id_var),
             sprintf("%-16s", cultivar), 

@@ -633,7 +633,7 @@ extract_sim_oryza <- function(sim_data, exp_set, variable) {
                              dplyr::select(exp_file, date, DVS, var, value),
                          yield = sim_dat %>%
                              group_by(exp_file) %>%
-                             summarise(date = max(date), value = max(WRR14)) %>%
+                             summarise(date = max(date), value = max(WRR14)*0.86) %>%  # grain to 0 % moisture
                              mutate(var = "YIELD") %>%
                              dplyr::select(exp_file, var, date, value), 
                          phen = sim_dat %>%

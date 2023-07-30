@@ -29,7 +29,7 @@ get_params_oryza <- function(path, input_data, exp_files, model_curves = "lm", s
   ### evalua si se encuantran las gherramientas necesarias en la carpeta de trabajo 
   ##Descarga y ejecuta aplicativos DRATES.exe y PARAM.exe para obetener parametros de cultico para ORYZA model
   
-  download_ORYZA_Tools(path)
+#  download_ORYZA_Tools(path)
   run_drates_param(exp_files, path)
   
   ### Extract and import params from PARAM.out
