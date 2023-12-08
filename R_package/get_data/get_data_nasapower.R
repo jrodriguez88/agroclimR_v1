@@ -5,12 +5,15 @@
 # 2019
 
 ## Load Packages
-#library(tidyverse)
-#library(curl)
 #library(lubridate)
 #library(jsonlite)
+#library(purrr)
+#library(tidyr)
+
+
 #library(naniar)
 #library(tictoc)
+
 
 ##Set arguments. Information about wth_vars and data access : https://power.larc.nasa.gov/docs/v1/
 #wth_vars <- c("PRECTOTCORR" ,    #diff in V2
@@ -19,10 +22,10 @@
 #            "T2M_MAX",
 #            "T2M_MIN",
 #            "WS2M")
-#ini_date <- ymd("1988-01-01")
+#ini_date <- ymd("2000-01-01")
 #end_date <- ymd("2019-12-31")
-#lat <- 6.8
-#lon <- -58.1
+#lat <- 3.8285
+#lon <- -76.5215 
 
 
 
@@ -104,7 +107,7 @@ get_data_nasapower <- function(lat, lon, ini_date, end_date,
 # data %>% from_nasa_to_model() %>%  basic_qc_nasa()
 #
 ### Plot data example
-#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, PRECTOTCORR)) + geom_line()
+#data %>% replace_with_na_all(condition = ~.x == -999) %>% ggplot(aes(date, rain)) + geom_line()
 #    
 ### Replace "NA" id and export to .csv
 #data %>% replace_with_na_all(condition = ~.x == -999) %>% write_csv("data.csv")
