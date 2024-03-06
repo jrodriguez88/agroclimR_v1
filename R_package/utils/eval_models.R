@@ -15,7 +15,7 @@
 ## Funcion para importar datos experimentales/observados organizados en el archivo-template INPUT_data.xlsx
 ################################################################################
 
-import_exp_data <- function(path_data, INPUT_data_files, cultivar, model = "oryza"){
+import_exp_data <- function(path_data, files, cultivar, model = "oryza"){
   
 # Import and process data files
   data <- files %>%
