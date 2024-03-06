@@ -106,8 +106,8 @@ extract_obs_var <- function(obs_data, variable, model = "oryza") {
   
   # vars select shet names required
   vars <- switch(variable, 
-                 dry_matter = "PLANT_gro", 
-                 lai = "PLANT_gro",
+                 dry_matter = "PLANT_obs", 
+                 lai = "PLANT_obs",
                  yield = "YIELD_obs", 
                  phen = "PHEN_obs")
   
